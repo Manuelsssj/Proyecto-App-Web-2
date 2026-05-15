@@ -1,6 +1,6 @@
 # Proyecto-App-Web-2
 
-# Descripción
+# Descripción 
 
 RideULEAM es un proyecto orientado a resolver los problemas de transporte que enfrentan diariamente los estudiantes universitarios de Manta. La propuesta consiste en desarrollar una API REST que permita coordinar viajes compartidos entre estudiantes que viven en sectores cercanos y tienen horarios similares de entrada y salida hacia la universidad.
 
