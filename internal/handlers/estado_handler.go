@@ -89,3 +89,30 @@ func UpdateEstado(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Estado no encontrado", http.StatusNotFound)
 }
+
+func DeleteEstado(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	for i, estado := range storage.Estados {
+
+		if estado.ID == id {
+
+			storage.Estados = append(
+				storage.Estados[:i],
+				storage.Estados[i+1:]...,
+			)
+
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	http.Error(w, "Estado no encontrado", http.StatusNotFound)
+}
