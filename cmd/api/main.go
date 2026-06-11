@@ -15,6 +15,7 @@ func main() {
 	r.Route("/api/v1/estados", func(r chi.Router) {
 		r.Post("/", handlers.CreateEstado)
 		r.Get("/", handlers.GetEstados)
+		r.Get("/{id}", handlers.GetEstado)
 	})
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
