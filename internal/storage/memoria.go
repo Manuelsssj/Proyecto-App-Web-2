@@ -86,3 +86,32 @@ func (m *Memoria) CrearRuta(rt models.Ruta) models.Ruta {
 	m.rutas = append(m.rutas, rt)
 	return rt
 }
+
+// ActualizarRuta reemplaza el producto con el ID dado.
+func (m *Memoria) ActualizarRuta(id int, datos models.Ruta) (models.Ruta, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, rt := range m.rutas {
+		if rt.ID == id {
+			datos.ID = id
+			m.rutas[i] = datos
+			return datos, true
+		}
+	}
+	return models.Ruta{}, false
+}
+
+// BorrarRuta elimina el producto con el ID dado.
+func (m *Memoria) BorrarRuta(id int) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, rt := range m.rutas {
+		if rt.ID == id {
+			m.rutas = append(m.rutas[:i], m.rutas[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
