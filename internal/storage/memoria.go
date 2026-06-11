@@ -102,7 +102,7 @@ func (m *Memoria) ActualizarRuta(id int, datos models.Ruta) (models.Ruta, bool) 
 	return models.Ruta{}, false
 }
 
-// BorrarRuta elimina el producto con el ID dado.
+// BorrarRuta elimina el producto con el ID dado
 func (m *Memoria) BorrarRuta(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
