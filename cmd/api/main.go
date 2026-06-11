@@ -16,6 +16,7 @@ func main() {
 		r.Post("/", handlers.CreateEstado)
 		r.Get("/", handlers.GetEstados)
 		r.Get("/{id}", handlers.GetEstado)
+		r.Put("/{id}", handlers.UpdateEstado)
 	})
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
