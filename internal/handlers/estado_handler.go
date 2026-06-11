@@ -3,9 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"RideUleam/internal/models"
 	"RideUleam/internal/storage"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func CreateEstado(w http.ResponseWriter, r *http.Request) {
@@ -31,4 +34,25 @@ func GetEstados(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(storage.Estados)
+}
+
+func GetEstado(w http.ResponseWriter, r *http.Request) {
+
+	idStr := chi.URLParam(r, "id")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	for _, estado := range storage.Estados {
+		if estado.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(estado)
+			return
+		}
+	}
+
+	http.Error(w, "Estado no encontrado", http.StatusNotFound)
 }
