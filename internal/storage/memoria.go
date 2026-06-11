@@ -52,3 +52,37 @@ func (m *Memoria) SeedRutas() {
 	}
 	m.nextRutaID = 7
 }
+
+// ListarRutas devuelve todos los productos en memoria.
+func (m *Memoria) ListarRutas() []models.Ruta {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	copia := make([]models.Ruta, len(m.rutas))
+	copy(copia, m.rutas)
+	return copia
+}
+
+// BuscarRutaPorID devuelve el producto con el ID dado (patrón comma-ok).
+func (m *Memoria) BuscarRutaPorID(id int) (models.Ruta, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, rt := range m.rutas {
+		if rt.ID == id {
+			return rt, true
+		}
+	}
+	return models.Ruta{}, false
+}
+
+// CrearRuta agrega un producto nuevo y devuelve el producto con ID asignado.
+func (m *Memoria) CrearRuta(rt models.Ruta) models.Ruta {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	rt.ID = m.nextRutaID
+	m.nextRutaID++
+	m.rutas = append(m.rutas, rt)
+	return rt
+}
