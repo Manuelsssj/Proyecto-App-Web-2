@@ -10,14 +10,19 @@ type Memoria struct {
 	rutas      []models.Ruta
 	nextRutaID int
 
+	estados      []models.Estado
+	nextEstadoID int
+
 	mu sync.Mutex
 }
 
 // NuevaMemoria crea un almacén vacío y listo para usar.
 func NuevaMemoria() *Memoria {
 	return &Memoria{
-		rutas:      []models.Ruta{},
-		nextRutaID: 1,
+		rutas:        []models.Ruta{},
+		nextRutaID:   1,
+		estados:      []models.Estado{},
+		nextEstadoID: 1,
 	}
 }
 

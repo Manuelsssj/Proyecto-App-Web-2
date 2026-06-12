@@ -33,6 +33,14 @@ func main() {
 		r.Delete("/rutas/{id}", servidor.BorrarRuta)
 
 		// Módulo Estado
+ feature/estado
+		r.Post("/estados", servidor.CreateEstado)
+		r.Get("/estados", servidor.GetEstados)
+		r.Get("/estados/{id}", servidor.GetEstado)
+		r.Put("/estados/{id}", servidor.UpdateEstado)
+		r.Delete("/estados/{id}", servidor.DeleteEstado)
+
+
 		r.Post("/estados/estado", servidor.CreateEstado)
 		r.Get("/estados/estados", servidor.GetEstados)
 		r.Get("/estados/estado/{id}", servidor.GetEstado)
@@ -45,6 +53,7 @@ func main() {
 		r.Get("/suscripciones/{id}", servidor.GetSuscripcion)
 		r.Put("/suscripciones/{id}", servidor.UpdateSuscripcion)
 		r.Delete("/suscripciones/{id}", servidor.DeleteSuscripcion)
+ main
 	})
 
 	log.Println("Servidor escuchando en http://localhost:8080")
