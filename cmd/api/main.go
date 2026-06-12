@@ -1,9 +1,22 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+
+	"RideUleam/internal/handlers"
+
+	"github.com/go-chi/chi/v5"
+)
 
 func main() {
-	fmt.Println("RideULEAM API")
-}
+	r := chi.NewRouter()
 
-//
+	r.Route("/api/v1/suscripciones", func(r chi.Router) {
+		r.Post("/", handlers.CreateSuscripcion)
+		r.Get("/", handlers.GetSuscripciones)
+	})
+
+	fmt.Println("Servidor corriendo en http://localhost:8080")
+	http.ListenAndServe(":8080", r)
+}
