@@ -11,12 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Server struct{}
-
-func NewServer() *Server {
-	return &Server{}
-}
-
 func (s *Server) CreateEstado(w http.ResponseWriter, r *http.Request) {
 	var estado models.Estado
 
