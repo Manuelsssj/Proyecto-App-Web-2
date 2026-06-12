@@ -5,12 +5,16 @@ import (
 	"net/http"
 
 	"RideUleam/internal/handlers"
+	"RideUleam/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
+
 	r := chi.NewRouter()
+
+	r.Use(middleware.CORS)
 
 	r.Route("/api/v1/estados", func(r chi.Router) {
 		r.Post("/estado", handlers.CreateEstado)
