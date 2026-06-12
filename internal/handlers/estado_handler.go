@@ -11,8 +11,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func CreateEstado(w http.ResponseWriter, r *http.Request) {
+type Server struct{}
 
+func NewServer() *Server {
+	return &Server{}
+}
+
+func (s *Server) CreateEstado(w http.ResponseWriter, r *http.Request) {
 	var estado models.Estado
 
 	err := json.NewDecoder(r.Body).Decode(&estado)
@@ -25,19 +30,15 @@ func CreateEstado(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(estado)
 }
 
-func GetEstados(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) GetEstados(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	json.NewEncoder(w).Encode(storage.Estados)
 }
 
-func GetEstado(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) GetEstado(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -57,8 +58,7 @@ func GetEstado(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Estado no encontrado", http.StatusNotFound)
 }
 
-func UpdateEstado(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) UpdateEstado(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -76,9 +76,7 @@ func UpdateEstado(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, estado := range storage.Estados {
-
 		if estado.ID == id {
-
 			storage.Estados[i] = estadoActualizado
 
 			w.Header().Set("Content-Type", "application/json")
@@ -90,8 +88,7 @@ func UpdateEstado(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Estado no encontrado", http.StatusNotFound)
 }
 
-func DeleteEstado(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) DeleteEstado(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -101,9 +98,7 @@ func DeleteEstado(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, estado := range storage.Estados {
-
 		if estado.ID == id {
-
 			storage.Estados = append(
 				storage.Estados[:i],
 				storage.Estados[i+1:]...,

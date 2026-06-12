@@ -16,12 +16,14 @@ func main() {
 
 	r.Use(middleware.CORS)
 
+	server := handlers.NewServer()
+
 	r.Route("/api/v1/estados", func(r chi.Router) {
-		r.Post("/estado", handlers.CreateEstado)
-		r.Get("/estados", handlers.GetEstados)
-		r.Get("/estado/{id}", handlers.GetEstado)
-		r.Put("/estado/{id}", handlers.UpdateEstado)
-		r.Delete("/estado/{id}", handlers.DeleteEstado)
+		r.Post("/estado", server.CreateEstado)
+		r.Get("/estados", server.GetEstados)
+		r.Get("/estado/{id}", server.GetEstado)
+		r.Put("/estado/{id}", server.UpdateEstado)
+		r.Delete("/estado/{id}", server.DeleteEstado)
 	})
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
