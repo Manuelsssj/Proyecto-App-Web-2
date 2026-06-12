@@ -1,25 +1,52 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"RideUleam/internal/handlers"
+	"RideUleam/internal/middleware"
+	"RideUleam/internal/storage"
 
 	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+	almacen := storage.NuevaMemoria()
+	almacen.SeedRutas()
+
+	servidor := handlers.NewServer(almacen)
+
 	r := chi.NewRouter()
 
-	r.Route("/api/v1/suscripciones", func(r chi.Router) {
-		r.Post("/", handlers.CreateSuscripcion)
-		r.Get("/", handlers.GetSuscripciones)
-		r.Get("/{id}", handlers.GetSuscripcion)
-		r.Put("/{id}", handlers.UpdateSuscripcion)
-		r.Delete("/{id}", handlers.DeleteSuscripcion)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(middleware.CORS)
+
+	r.Route("/api/v1", func(r chi.Router) {
+		// Módulo Rutas
+		r.Get("/rutas", servidor.ListarRutas)
+		r.Post("/rutas", servidor.CrearRuta)
+		r.Get("/rutas/{id}", servidor.ObtenerRutas)
+		r.Put("/rutas/{id}", servidor.ActualizarRuta)
+		r.Delete("/rutas/{id}", servidor.BorrarRuta)
+
+		// Módulo Estado
+		r.Post("/estados/estado", servidor.CreateEstado)
+		r.Get("/estados/estados", servidor.GetEstados)
+		r.Get("/estados/estado/{id}", servidor.GetEstado)
+		r.Put("/estados/estado/{id}", servidor.UpdateEstado)
+		r.Delete("/estados/estado/{id}", servidor.DeleteEstado)
+
+		// Módulo Suscripciones
+		r.Post("/suscripciones", servidor.CreateSuscripcion)
+		r.Get("/suscripciones", servidor.GetSuscripciones)
+		r.Get("/suscripciones/{id}", servidor.GetSuscripcion)
+		r.Put("/suscripciones/{id}", servidor.UpdateSuscripcion)
+		r.Delete("/suscripciones/{id}", servidor.DeleteSuscripcion)
 	})
 
-	fmt.Println("Servidor corriendo en http://localhost:8080")
-	http.ListenAndServe(":8080", r)
+	log.Println("Servidor escuchando en http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

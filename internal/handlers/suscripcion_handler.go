@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func CreateSuscripcion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateSuscripcion(w http.ResponseWriter, r *http.Request) {
 
 	var suscripcion models.Suscripcion
 
@@ -29,13 +29,13 @@ func CreateSuscripcion(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(suscripcion)
 }
 
-func GetSuscripciones(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetSuscripciones(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(storage.Suscripciones)
 }
-func GetSuscripcion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetSuscripcion(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -54,7 +54,7 @@ func GetSuscripcion(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Suscripción no encontrada", http.StatusNotFound)
 }
-func UpdateSuscripcion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UpdateSuscripcion(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -84,7 +84,7 @@ func UpdateSuscripcion(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Suscripción no encontrada", http.StatusNotFound)
 }
-func DeleteSuscripcion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DeleteSuscripcion(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
