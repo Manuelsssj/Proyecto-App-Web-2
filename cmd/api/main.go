@@ -33,11 +33,11 @@ func main() {
 		r.Delete("/rutas/{id}", servidor.BorrarRuta)
 
 		// Módulo Estado
-		r.Post("/estados/estado", servidor.CreateEstado)
-		r.Get("/estados/estados", servidor.GetEstados)
-		r.Get("/estados/estado/{id}", servidor.GetEstado)
-		r.Put("/estados/estado/{id}", servidor.UpdateEstado)
-		r.Delete("/estados/estado/{id}", servidor.DeleteEstado)
+		r.Post("/estados", servidor.CreateEstado)
+		r.Get("/estados", servidor.GetEstados)
+		r.Get("/estados/{id}", servidor.GetEstado)
+		r.Put("/estados/{id}", servidor.UpdateEstado)
+		r.Delete("/estados/{id}", servidor.DeleteEstado)
 
 		// Módulo Suscripciones
 		r.Post("/suscripciones", servidor.CreateSuscripcion)
