@@ -16,7 +16,6 @@ func main() {
 	almacen := storage.NuevaMemoria()
 	almacen.SeedRutas()
 	almacen.SeedEstados()
-	almacen.SeedSuscripciones()
 
 	servidor := handlers.NewServer(almacen)
 
@@ -41,12 +40,13 @@ func main() {
 		r.Put("/estado/{id}", servidor.ActualizarEstado)
 		r.Delete("/estado/{id}", servidor.BorrarEstado)
 
-		// Módulo Suscripciones
-		r.Post("/estado", servidor.CrearSuscripcion)
-		r.Get("/estados", servidor.ListarSuscripciones)
-		r.Get("/estado/{id}", servidor.ObtenerSuscripcion)
-		r.Put("/estado/{id}", servidor.ActualizarSuscripcion)
-		r.Delete("/estado/{id}", servidor.BorrarSuscripcion)
+		// Módulo Suscripcion
+		r.Post("/suscripcion", servidor.CrearSuscripcion)
+		r.Get("/suscripcion", servidor.ListarSuscripciones)
+		r.Get("/suscripcion/{id}", servidor.ObtenerSuscripcion)
+		r.Put("/suscripcion/{id}", servidor.ActualizarSuscripcion)
+		r.Delete("/suscripcion/{id}", servidor.BorrarSuscripcion)
+
 	})
 
 	log.Println("Servidor escuchando en http://localhost:8080")
