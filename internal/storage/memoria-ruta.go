@@ -19,8 +19,9 @@ type Memoria struct {
 // NuevaMemoria crea un almacén vacío y listo para usar.
 func NuevaMemoria() *Memoria {
 	return &Memoria{
-		rutas:        []models.Ruta{},
-		nextRutaID:   1,
+		rutas:      []models.Ruta{},
+		nextRutaID: 1,
+
 		estados:      []models.Estado{},
 		nextEstadoID: 1,
 	}
@@ -115,6 +116,101 @@ func (m *Memoria) BorrarRuta(id int) bool {
 	for i, rt := range m.rutas {
 		if rt.ID == id {
 			m.rutas = append(m.rutas[:i], m.rutas[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// =========================================================
+// Estados
+// =========================================================
+
+// SeedEstados carga rutas iniciales en memoria.
+
+func (m *Memoria) SeedEstados() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.estados = []models.Estado{
+		{
+			ID: 1, RutaID: 1, Estado: "Activa", Motivo: "", FechaInicio: "2026-06-01", FechaFin: "",
+		},
+		{
+			ID: 2, RutaID: 2, Estado: "Suspendida", Motivo: "Mantenimiento del vehículo", FechaInicio: "2026-06-05", FechaFin: "2026-06-10",
+		},
+		{
+			ID: 3, RutaID: 3, Estado: "Activa", Motivo: "", FechaInicio: "2026-06-01", FechaFin: "",
+		},
+		{
+			ID: 4, RutaID: 4, Estado: "Cancelada", Motivo: "Baja demanda", FechaInicio: "2026-06-08", FechaFin: "2026-06-08",
+		},
+		{
+			ID: 5, RutaID: 5, Estado: "Activa", Motivo: "", FechaInicio: "2026-06-01", FechaFin: "",
+		},
+		{
+			ID: 6, RutaID: 6, Estado: "Suspendida", Motivo: "Condiciones climáticas", FechaInicio: "2026-06-11", FechaFin: "2026-06-12",
+		},
+	}
+	m.nextEstadoID = 7
+}
+
+func (m *Memoria) ListarEstados() []models.Estado {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	copia := make([]models.Estado, len(m.estados))
+	copy(copia, m.estados)
+	return copia
+}
+
+// BuscarCategoriaPorID devuelve la categoría con el ID dado (patrón comma-ok).
+func (m *Memoria) BuscarEstadoPorID(id int) (models.Estado, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, e := range m.estados {
+		if e.ID == id {
+			return e, true
+		}
+	}
+	return models.Estado{}, false
+}
+
+// CrearCategoria agrega una categoría nueva y devuelve la categoría con ID asignado.
+func (m *Memoria) CrearEstado(e models.Estado) models.Estado {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	e.ID = m.nextEstadoID
+	m.nextEstadoID++
+	m.estados = append(m.estados, e)
+	return e
+}
+
+// ActualizarCategoria reemplaza la categoría con el ID dado.
+func (m *Memoria) ActualizarEstado(id int, datos models.Estado) (models.Estado, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, e := range m.estados {
+		if e.ID == id {
+			datos.ID = id
+			m.estados[i] = datos
+			return datos, true
+		}
+	}
+	return models.Estado{}, false
+}
+
+// BorrarCategoria elimina la categoría con el ID dado.
+func (m *Memoria) BorrarEstado(id int) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, c := range m.estados {
+		if c.ID == id {
+			m.estados = append(m.estados[:i], m.estados[i+1:]...)
 			return true
 		}
 	}

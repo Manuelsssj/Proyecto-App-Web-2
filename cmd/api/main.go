@@ -15,6 +15,7 @@ import (
 func main() {
 	almacen := storage.NuevaMemoria()
 	almacen.SeedRutas()
+	almacen.SeedEstados()
 
 	servidor := handlers.NewServer(almacen)
 
@@ -33,19 +34,11 @@ func main() {
 		r.Delete("/rutas/{id}", servidor.BorrarRuta)
 
 		// Módulo Estado
-
-		r.Post("/estados", servidor.CreateEstado)
-		r.Get("/estados", servidor.GetEstados)
-		r.Get("/estados/{id}", servidor.GetEstado)
-		r.Put("/estados/{id}", servidor.UpdateEstado)
-		r.Delete("/estados/{id}", servidor.DeleteEstado)
-
-		// Módulo Suscripciones
-		r.Post("/suscripciones", servidor.CreateSuscripcion)
-		r.Get("/suscripciones", servidor.GetSuscripciones)
-		r.Get("/suscripciones/{id}", servidor.GetSuscripcion)
-		r.Put("/suscripciones/{id}", servidor.UpdateSuscripcion)
-		r.Delete("/suscripciones/{id}", servidor.DeleteSuscripcion)
+		r.Post("/estado", servidor.CrearEstado)
+		r.Get("/estados", servidor.ListarEstados)
+		r.Get("/estado/{id}", servidor.ObtenerEstado)
+		r.Put("/estado/{id}", servidor.ActualizarEstado)
+		r.Delete("/estado/{id}", servidor.BorrarEstado)
 
 	})
 
