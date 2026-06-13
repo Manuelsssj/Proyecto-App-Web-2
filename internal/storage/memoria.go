@@ -13,6 +13,9 @@ type Memoria struct {
 	estados      []models.Estado
 	nextEstadoID int
 
+	suscripciones     []models.Suscripcion
+	nextSuscripcionID int
+
 	mu sync.Mutex
 }
 
@@ -24,6 +27,9 @@ func NuevaMemoria() *Memoria {
 
 		estados:      []models.Estado{},
 		nextEstadoID: 1,
+
+		suscripciones:     []models.Suscripcion{},
+		nextSuscripcionID: 1,
 	}
 }
 
@@ -211,6 +217,101 @@ func (m *Memoria) BorrarEstado(id int) bool {
 	for i, c := range m.estados {
 		if c.ID == id {
 			m.estados = append(m.estados[:i], m.estados[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// =========================================================
+// Suscripciones
+// =========================================================
+
+// SeedEstados carga rutas iniciales en memoria.
+
+func (m *Memoria) SeedSuscripciones() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.suscripciones = []models.Suscripcion{
+		{
+			ID: 1, UsuarioID: 1, RutaID: 1, FechaInicio: "2026-06-01", Estado: "Activa",
+		},
+		{
+			ID: 2, UsuarioID: 2, RutaID: 2, FechaInicio: "2026-06-03", Estado: "Activa",
+		},
+		{
+			ID: 3, UsuarioID: 3, RutaID: 1, FechaInicio: "2026-06-05", Estado: "Pendiente",
+		},
+		{
+			ID: 4, UsuarioID: 4, RutaID: 3, FechaInicio: "2026-06-07", Estado: "Cancelada",
+		},
+		{
+			ID: 5, UsuarioID: 5, RutaID: 4, FechaInicio: "2026-06-08", Estado: "Activa",
+		},
+		{
+			ID: 6, UsuarioID: 6, RutaID: 2, FechaInicio: "2026-06-10", Estado: "Activa",
+		},
+	}
+	m.nextEstadoID = 7
+}
+
+func (m *Memoria) ListarSuscripciones() []models.Suscripcion {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	copia := make([]models.Suscripcion, len(m.suscripciones))
+	copy(copia, m.suscripciones)
+	return copia
+}
+
+// BuscarCategoriaPorID devuelve la categoría con el ID dado (patrón comma-ok).
+func (m *Memoria) BuscarSuscripcionPorID(id int) (models.Suscripcion, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, s := range m.suscripciones {
+		if s.ID == id {
+			return s, true
+		}
+	}
+	return models.Suscripcion{}, false
+}
+
+// CrearCategoria agrega una categoría nueva y devuelve la categoría con ID asignado.
+func (m *Memoria) CrearSuscripcion(s models.Suscripcion) models.Suscripcion {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	s.ID = m.nextSuscripcionID
+	m.nextSuscripcionID++
+	m.suscripciones = append(m.suscripciones, s)
+	return s
+}
+
+// ActualizarCategoria reemplaza la categoría con el ID dado.
+func (m *Memoria) ActualizarSuscripcion(id int, datos models.Suscripcion) (models.Suscripcion, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, s := range m.suscripciones {
+		if s.ID == id {
+			datos.ID = id
+			m.suscripciones[i] = datos
+			return datos, true
+		}
+	}
+	return models.Suscripcion{}, false
+}
+
+// BorrarCategoria elimina la categoría con el ID dado.
+func (m *Memoria) BorrarSuscripcion(id int) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, s := range m.estados {
+		if s.ID == id {
+			m.suscripciones = append(m.suscripciones[:i], m.suscripciones[i+1:]...)
 			return true
 		}
 	}
