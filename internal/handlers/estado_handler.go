@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -10,89 +11,100 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (s *Server) CreateEstado(w http.ResponseWriter, r *http.Request) {
-	var estado models.Estado
-
-	err := json.NewDecoder(r.Body).Decode(&estado)
-	if err != nil {
-		http.Error(w, "Datos inválidos", http.StatusBadRequest)
-		return
-	}
-
-	creado := s.Storage.CrearEstado(estado)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(creado)
-}
-
-func (s *Server) GetEstados(w http.ResponseWriter, r *http.Request) {
+// ListarCategorias atiende GET /api/v1/categorias.
+func (s *Server) ListarEstados(w http.ResponseWriter, _ *http.Request) {
 	estados := s.Storage.ListarEstados()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(estados)
+	if err := json.NewEncoder(w).Encode(estados); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
 }
 
-func (s *Server) GetEstado(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-
-	id, err := strconv.Atoi(idStr)
+// ObtenerCategoria atiende GET /api/v1/categorias/{id}.
+func (s *Server) ObtenerEstado(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest)
 		return
 	}
 
 	estado, encontrado := s.Storage.BuscarEstadoPorID(id)
 	if !encontrado {
-		http.Error(w, "Estado no encontrado", http.StatusNotFound)
+		http.Error(w, "Estado no encontrada", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(estado)
+	if err := json.NewEncoder(w).Encode(estado); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
 }
 
-func (s *Server) UpdateEstado(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+// CrearCategoria atiende POST /api/v1/categorias.
+func (s *Server) CrearEstado(w http.ResponseWriter, r *http.Request) {
+	var nueva models.Estado
+	if err := json.NewDecoder(r.Body).Decode(&nueva); err != nil {
+		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if nueva.RutaID <= 0 {
+		http.Error(w, "el campo ruta_id es obligatorio", http.StatusBadRequest)
 		return
 	}
 
-	var estadoActualizado models.Estado
+	creada := s.Storage.CrearEstado(nueva)
 
-	err = json.NewDecoder(r.Body).Decode(&estadoActualizado)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(creada); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
+}
+
+// ActualizarCategoria atiende PUT /api/v1/categorias/{id}.
+func (s *Server) ActualizarEstado(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "Datos inválidos", http.StatusBadRequest)
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest)
 		return
 	}
 
-	actualizado, encontrado := s.Storage.ActualizarEstado(id, estadoActualizado)
-	if !encontrado {
-		http.Error(w, "Estado no encontrado", http.StatusNotFound)
+	var datos models.Estado
+	if err := json.NewDecoder(r.Body).Decode(&datos); err != nil {
+		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if datos.RutaID <= 0 {
+		http.Error(w, "el campo ruta_id es obligatorio", http.StatusBadRequest)
+		return
+	}
+
+	actualizada, encontrada := s.Storage.ActualizarEstado(id, datos)
+	if !encontrada {
+		http.Error(w, "categoría no encontrada", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(actualizado)
+	if err := json.NewEncoder(w).Encode(actualizada); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
 }
 
-func (s *Server) DeleteEstado(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-
-	id, err := strconv.Atoi(idStr)
+// BorrarCategoria atiende DELETE /api/v1/categorias/{id}.
+func (s *Server) BorrarEstado(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest)
 		return
 	}
 
 	if !s.Storage.BorrarEstado(id) {
-		http.Error(w, "Estado no encontrado", http.StatusNotFound)
+		http.Error(w, "categoría no encontrada", http.StatusNotFound)
 		return
 	}
 
