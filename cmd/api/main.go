@@ -33,18 +33,7 @@ func main() {
 		r.Delete("/rutas/{id}", servidor.BorrarRuta)
 
 		// Módulo Estado
-		r.Post("/estados/estado", servidor.CreateEstado)
-		r.Get("/estados/estados", servidor.GetEstados)
-		r.Get("/estados/estado/{id}", servidor.GetEstado)
-		r.Put("/estados/estado/{id}", servidor.UpdateEstado)
-		r.Delete("/estados/estado/{id}", servidor.DeleteEstado)
 
-		// Módulo Suscripciones
-		r.Post("/suscripciones", servidor.CreateSuscripcion)
-		r.Get("/suscripciones", servidor.GetSuscripciones)
-		r.Get("/suscripciones/{id}", servidor.GetSuscripcion)
-		r.Put("/suscripciones/{id}", servidor.UpdateSuscripcion)
-		r.Delete("/suscripciones/{id}", servidor.DeleteSuscripcion)
 	})
 
 	log.Println("Servidor escuchando en http://localhost:8080")
