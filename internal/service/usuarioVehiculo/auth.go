@@ -13,7 +13,7 @@ import (
 
 // secretoJWT firma y verifica los tokens.
 // TODO(S12): mover a una variable de entorno; jamas dejarlo en el codigo en produccion.
-var secretoJWT = []byte("cafeteria-uleam-secreto-demo-cambiar-en-S12")
+var secretoJWT = []byte("rideUleam-secreto-demo-cambiar-en-S12")
 
 // duracionToken es la validez del token desde su emision.
 const duracionToken = 24 * time.Hour
