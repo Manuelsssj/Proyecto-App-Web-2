@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	handlers "RideUleam/internal/handlers/usuarioVehiculo"
-	"RideUleam/internal/middleware"
-	models "RideUleam/internal/models/usuarioVehiculo"
-	service "RideUleam/internal/service/usuarioVehiculo"
-	storage "RideUleam/internal/storage/usuarioVehiculo"
+	handlers "cmd/rideUleam/internal/handlers/usuarioVehiculo"
+	"cmd/rideUleam/internal/middleware"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
+	service "cmd/rideUleam/internal/service/usuarioVehiculo"
+	storage "cmd/rideUleam/internal/storage/usuarioVehiculo"
 )
 
 // usuarioRepoFake: repositorio de usuarios en memoria para los tests de handler.

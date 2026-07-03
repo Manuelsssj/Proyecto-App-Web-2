@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	models "RideUleam/internal/models/usuarioVehiculo"
-	service "RideUleam/internal/service/usuarioVehiculo"
-	storage "RideUleam/internal/storage/usuarioVehiculo"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
+	service "cmd/rideUleam/internal/service/usuarioVehiculo"
+	storage "cmd/rideUleam/internal/storage/usuarioVehiculo"
 )
 
 // usuarioRepoFake es un repositorio de usuarios EN MEMORIA para los tests.

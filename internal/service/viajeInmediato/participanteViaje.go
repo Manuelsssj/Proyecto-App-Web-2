@@ -1,8 +1,8 @@
 package service
 
 import (
-	models "RideUleam/internal/models/viajeInmediato"
-	storage "RideUleam/internal/storage/viajeInmediato"
+	models "cmd/rideUleam/internal/models/viajeInmediato"
+	storage "cmd/rideUleam/internal/storage/viajeInmediato"
 )
 
 type ParticipanteViajeService struct {

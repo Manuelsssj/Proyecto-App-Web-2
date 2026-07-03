@@ -1,6 +1,6 @@
 package storage
 
-import models "RideUleam/internal/models/usuarioVehiculo"
+import models "cmd/rideUleam/internal/models/usuarioVehiculo"
 
 // Almacen define QUÉ sabe hacer un almacén de la cafetería, sin decir CÓMO.
 //

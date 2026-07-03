@@ -10,16 +10,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 
-	handlers "RideUleam/internal/handlers/viajeInmediato"
-	"RideUleam/internal/middleware"
-	service "RideUleam/internal/service/viajeInmediato"
-	storage "RideUleam/internal/storage/viajeInmediato"
+	handlers "cmd/rideUleam/internal/handlers/viajeInmediato"
+	"cmd/rideUleam/internal/middleware"
+	service "cmd/rideUleam/internal/service/viajeInmediato"
+	storage "cmd/rideUleam/internal/storage/viajeInmediato"
 
-	handlersU "RideUleam/internal/handlers/usuarioVehiculo"
-	modelsU "RideUleam/internal/models/usuarioVehiculo"
-	serviceU "RideUleam/internal/service/usuarioVehiculo"
+	handlersU "cmd/rideUleam/internal/handlers/usuarioVehiculo"
+	modelsU "cmd/rideUleam/internal/models/usuarioVehiculo"
+	serviceU "cmd/rideUleam/internal/service/usuarioVehiculo"
 
-	storageU "RideUleam/internal/storage/usuarioVehiculo"
+	storageU "cmd/rideUleam/internal/storage/usuarioVehiculo"
 )
 
 // usuarioRepoFake: repositorio de usuarios en memoria para los tests de handler.

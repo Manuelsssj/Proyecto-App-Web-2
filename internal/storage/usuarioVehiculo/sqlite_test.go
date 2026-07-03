@@ -1,7 +1,7 @@
 package storage
 
 import (
-	models "RideUleam/internal/models/usuarioVehiculo"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
 	"testing"
 
 	"github.com/glebarez/sqlite"

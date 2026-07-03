@@ -1,8 +1,8 @@
 package service
 
 import (
-	models "RideUleam/internal/models/usuarioVehiculo"
-	storage "RideUleam/internal/storage/usuarioVehiculo"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
+	storage "cmd/rideUleam/internal/storage/usuarioVehiculo"
 )
 
 type VehiculoService struct {

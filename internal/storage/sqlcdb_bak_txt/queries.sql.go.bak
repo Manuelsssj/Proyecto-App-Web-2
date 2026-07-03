@@ -37,7 +37,6 @@ func (q *Queries) ActualizarHorarioRuta(ctx context.Context, arg ActualizarHorar
 		&i.RutaID,
 		&i.Dia,
 		&i.Hora,
-=======
 const actualizarParticipanteViaje = `-- name: ActualizarParticipanteViaje :one
 ;
 
@@ -125,7 +124,6 @@ func (q *Queries) ActualizarMantenimientoVehiculo(ctx context.Context, arg Actua
 		&i.FechaInicio,
 		&i.FechaFin,
 		&i.Motivo,
-=======
 const actualizarVehiculo = `-- name: ActualizarVehiculo :one
 d;
 
@@ -191,7 +189,6 @@ func (q *Queries) ActualizarRutaProgramada(ctx context.Context, arg ActualizarRu
 		arg.ID,
 	)
 	var i RutasProgramada
-=======
 const actualizarViajeInmediato = `-- name: ActualizarViajeInmediato :one
 ;
 
@@ -230,7 +227,6 @@ func (q *Queries) ActualizarViajeInmediato(ctx context.Context, arg ActualizarVi
 		&i.Destino,
 
 		&i.Costo,
-=======
 		&i.HoraSalida,
 		&i.Cupos,
 		&i.Estado,
@@ -290,7 +286,6 @@ func (q *Queries) CrearHorarioRuta(ctx context.Context, arg CrearHorarioRutaPara
 		&i.RutaID,
 		&i.Dia,
 		&i.Hora,
-=======
 const borrarParticipanteViaje = `-- name: BorrarParticipanteViaje :execrows
 ;
 
@@ -409,7 +404,6 @@ func (q *Queries) CrearMantenimientoVehiculo(ctx context.Context, arg CrearMante
 		&i.FechaInicio,
 		&i.FechaFin,
 		&i.Motivo,
-=======
 const buscarVehiculoPorID = `-- name: BuscarVehiculoPorID :one
 s;
 
@@ -528,7 +522,6 @@ func (q *Queries) CrearRutaProgramada(ctx context.Context, arg CrearRutaPrograma
 		&i.Origen,
 		&i.Destino,
 		&i.Costo,
-=======
 const crearVehiculo = `-- name: CrearVehiculo :one
 ?;
 
@@ -589,7 +582,6 @@ func (q *Queries) CrearUsuario(ctx context.Context, arg CrearUsuarioParams) (Usu
 		&i.Nombre,
 		&i.Correo,
 		&i.Password,
-=======
 const crearViajeInmediato = `-- name: CrearViajeInmediato :one
 ;
 
@@ -639,7 +631,6 @@ WHERE ruta_id = ?
 
 func (q *Queries) ListarHorariosPorRutaID(ctx context.Context, rutaID int64) ([]HorariosRutum, error) {
 	rows, err := q.db.QueryContext(ctx, listarHorariosPorRutaID, rutaID)
-=======
 const listarParticipantesViajes = `-- name: ListarParticipantesViajes :many
 ;
 
@@ -665,7 +656,6 @@ func (q *Queries) ListarParticipantesViajes(ctx context.Context) ([]Participante
 			&i.Dia,
 			&i.Hora,
 		); err != nil {
-=======
 	var items []ParticipanteViaje
 	for rows.Next() {
 		var i ParticipanteViaje
@@ -694,7 +684,6 @@ FROM horarios_ruta
 // HORARIOS DE RUTA
 func (q *Queries) ListarHorariosRuta(ctx context.Context) ([]HorariosRutum, error) {
 	rows, err := q.db.QueryContext(ctx, listarHorariosRuta)
-=======
 const listarSolicitudesViajes = `-- name: ListarSolicitudesViajes :many
 ;
 
@@ -719,7 +708,6 @@ func (q *Queries) ListarSolicitudesViajes(ctx context.Context) ([]SolicitudViaje
 			&i.RutaID,
 			&i.Dia,
 			&i.Hora,
-=======
 	var items []SolicitudViaje
 	for rows.Next() {
 		var i SolicitudViaje
@@ -788,7 +776,6 @@ FROM mantenimientos_vehiculo
 // MANTENIMIENTOS VEHICULO
 func (q *Queries) ListarMantenimientosVehiculo(ctx context.Context) ([]MantenimientosVehiculo, error) {
 	rows, err := q.db.QueryContext(ctx, listarMantenimientosVehiculo)
-=======
 const listarVehiculos = `-- name: ListarVehiculos :many
 ;
 
@@ -820,7 +807,6 @@ func (q *Queries) ListarVehiculos(ctx context.Context) ([]Vehiculo, error) {
 			&i.FechaInicio,
 			&i.FechaFin,
 			&i.Motivo,
-=======
 	var items []Vehiculo
 	for rows.Next() {
 		var i Vehiculo
@@ -856,7 +842,6 @@ FROM rutas_programadas
 // RUTAS PROGRAMADAS
 func (q *Queries) ListarRutasProgramadas(ctx context.Context) ([]RutasProgramada, error) {
 	rows, err := q.db.QueryContext(ctx, listarRutasProgramadas)
-=======
 const listarViajesInmediatos = `-- name: ListarViajesInmediatos :many
 
 
@@ -878,7 +863,6 @@ func (q *Queries) ListarViajesInmediatos(ctx context.Context) ([]ViajeInmediato,
 	var items []RutasProgramada
 	for rows.Next() {
 		var i RutasProgramada
-=======
 	var items []ViajeInmediato
 	for rows.Next() {
 		var i ViajeInmediato
@@ -890,7 +874,6 @@ func (q *Queries) ListarViajesInmediatos(ctx context.Context) ([]ViajeInmediato,
 			&i.Destino,
 
 			&i.Costo,
-=======
 			&i.HoraSalida,
 			&i.Cupos,
 			&i.Estado,
@@ -1001,5 +984,4 @@ func (q *Queries) ObtenerUsuarioPorID(ctx context.Context, id int64) (Usuario, e
 	)
 	return i, err
 }
-=======
 

@@ -1,7 +1,7 @@
 package handlers_test
 
 import (
-	models "RideUleam/internal/models/viajeInmediato"
+	models "cmd/rideUleam/internal/models/viajeInmediato"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"

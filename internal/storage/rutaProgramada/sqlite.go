@@ -1,7 +1,7 @@
 package storage
 
 import (
-	models "RideUleam/internal/models/rutaProgramada"
+	models "cmd/rideUleam/internal/models/rutaProgramada"
 
 	"gorm.io/gorm"
 )

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	service "RideUleam/internal/service/viajeInmediato"
+	service "cmd/rideUleam/internal/service/viajeInmediato"
 	"encoding/json"
 	"errors"
 	"log"
