@@ -1,4 +1,8 @@
 version: "2"
+
+
+=======
+
 sql:
   - engine: "sqlite"
     schema: "db/schema.sql"
@@ -6,6 +10,10 @@ sql:
     gen:
       go:
         package: "sqlcdb"
+
+        out: "internal/storage/sqlcdb"
+=======
         out: "internal/storage/sqlcdb"
         emit_json_tags: false
  
+

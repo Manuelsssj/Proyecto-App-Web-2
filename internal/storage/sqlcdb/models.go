@@ -4,6 +4,24 @@
 
 package sqlcdb
 
+
+type HorariosRutum struct {
+	ID     int64
+	RutaID int64
+	Dia    string
+	Hora   string
+}
+
+type MantenimientosVehiculo struct {
+	ID          int64
+	VehiculoID  int64
+	FechaInicio string
+	FechaFin    string
+	Motivo      string
+}
+
+type RutasProgramada struct {
+=======
 type ParticipanteViaje struct {
 	ID        int64
 	ViajeID   int64
@@ -27,11 +45,23 @@ type Vehiculo struct {
 }
 
 type ViajeInmediato struct {
+
 	ID          int64
 	ConductorID int64
 	Origen      string
 	Destino     string
+
+	Costo       float64
+}
+
+type Usuario struct {
+	ID       int64
+	Nombre   string
+	Correo   string
+	Password string
+=======
 	HoraSalida  string
 	Cupos       int64
 	Estado      string
+
 }
