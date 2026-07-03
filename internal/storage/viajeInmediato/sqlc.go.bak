@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	models "RideUleam/internal/models/viajeInmediato"
-	"RideUleam/internal/storage/sqlcdb"
+	models "cmd/rideUleam/internal/models/viajeInmediato"
+	"cmd/rideUleam/internal/storage/sqlcdb"
 )
 
 type AlmacenSQLC struct {

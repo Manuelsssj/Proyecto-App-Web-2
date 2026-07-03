@@ -3,8 +3,8 @@ package storage
 import (
 	"testing"
 
-	models "RideUleam/internal/models/rutaProgramada"
-	usuarioModels "RideUleam/internal/models/usuario"
+	models "cmd/rideUleam/internal/models/rutaProgramada"
+	usuarioModels "cmd/rideUleam/internal/models/usuario"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"

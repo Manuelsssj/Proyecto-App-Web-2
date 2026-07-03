@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	models "RideUleam/internal/models/usuarioVehiculo"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
 )
 
 // // Server agrupa las dependencias compartidas por los handlers.

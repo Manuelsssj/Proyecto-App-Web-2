@@ -3,8 +3,8 @@ package service
 import (
 	"errors"
 
-	models "RideUleam/internal/models/rutaProgramada"
-	storage "RideUleam/internal/storage/rutaProgramada"
+	models "cmd/rideUleam/internal/models/rutaProgramada"
+	storage "cmd/rideUleam/internal/storage/rutaProgramada"
 )
 
 type RutaProgramadaService struct {

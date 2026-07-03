@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	models "RideUleam/internal/models/viajeInmediato"
-	service "RideUleam/internal/service/viajeInmediato"
-	storage "RideUleam/internal/storage/viajeInmediato"
+	models "cmd/rideUleam/internal/models/viajeInmediato"
+	service "cmd/rideUleam/internal/service/viajeInmediato"
+	storage "cmd/rideUleam/internal/storage/viajeInmediato"
 )
 
 // productoRepoMock es un doble de prueba de storage.ProductoRepository.

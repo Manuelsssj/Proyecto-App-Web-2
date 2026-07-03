@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	authService "RideUleam/internal/service"
-	rutaService "RideUleam/internal/service/rutaProgramada"
-	rutaStorage "RideUleam/internal/storage/rutaProgramada"
-	usuarioStorage "RideUleam/internal/storage/usuario"
+	authService "cmd/rideUleam/internal/service"
+	rutaService "cmd/rideUleam/internal/service/rutaProgramada"
+	rutaStorage "cmd/rideUleam/internal/storage/rutaProgramada"
+	usuarioStorage "cmd/rideUleam/internal/storage/usuario"
 )
 
 type Server struct {

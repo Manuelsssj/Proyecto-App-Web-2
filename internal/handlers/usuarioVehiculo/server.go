@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	service "RideUleam/internal/service/usuarioVehiculo"
+	service "cmd/rideUleam/internal/service/usuarioVehiculo"
 )
 
 type Server struct {

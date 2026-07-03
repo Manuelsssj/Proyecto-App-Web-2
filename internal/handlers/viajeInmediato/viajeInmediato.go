@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	models "RideUleam/internal/models/viajeInmediato"
+	models "cmd/rideUleam/internal/models/viajeInmediato"
 )
 
 // ListarProductos atiende GET /api/v1/productos.

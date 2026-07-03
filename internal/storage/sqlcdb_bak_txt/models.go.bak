@@ -21,7 +21,6 @@ type MantenimientosVehiculo struct {
 }
 
 type RutasProgramada struct {
-=======
 type ParticipanteViaje struct {
 	ID        int64
 	ViajeID   int64
@@ -59,7 +58,6 @@ type Usuario struct {
 	Nombre   string
 	Correo   string
 	Password string
-=======
 	HoraSalida  string
 	Cupos       int64
 	Estado      string

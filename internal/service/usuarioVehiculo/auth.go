@@ -7,8 +7,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	models "RideUleam/internal/models/usuarioVehiculo"
-	storage "RideUleam/internal/storage/usuarioVehiculo"
+	models "cmd/rideUleam/internal/models/usuarioVehiculo"
+	storage "cmd/rideUleam/internal/storage/usuarioVehiculo"
 )
 
 // secretoJWT firma y verifica los tokens.
