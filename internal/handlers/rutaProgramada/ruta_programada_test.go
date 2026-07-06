@@ -138,7 +138,7 @@ func TestRutaProgramadaHandler_CrearRutaConTokenResponde201(t *testing.T) {
 
 	r.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusTeapot {
+	if rec.Code != http.StatusCreated {
 		t.Fatalf("se esperaba status 201, se obtuvo %d. Respuesta: %s", rec.Code, rec.Body.String())
 	}
 
