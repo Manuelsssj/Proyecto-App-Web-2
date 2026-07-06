@@ -46,7 +46,7 @@ func (s *Server) ObtenerRutaProgramada(w http.ResponseWriter, r *http.Request) {
 func (s *Server) CrearRutaProgramada(w http.ResponseWriter, r *http.Request) {
 	var ruta models.RutaProgramada
 
-	if err := json.NewDecoder(r.Body).Decode(&ruta); err != nil {
+	if errores := json.NewDecoder(r.Body).Decode(&ruta); err != nil {
 		responderError(w, http.StatusBadRequest, "Datos inválidos")
 		return
 	}
