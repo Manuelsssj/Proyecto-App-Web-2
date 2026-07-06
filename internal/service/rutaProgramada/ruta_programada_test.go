@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	models "cmd/rideUleam/internal/models/rutaProgramada"
+	models "RideUleam/internal/models/rutaProgramada"
 )
 
 type mockAlmacenRuta struct {

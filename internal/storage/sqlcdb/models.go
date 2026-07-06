@@ -4,7 +4,6 @@
 
 package sqlcdb
 
-
 type HorariosRutum struct {
 	ID     int64
 	RutaID int64
@@ -21,35 +20,10 @@ type MantenimientosVehiculo struct {
 }
 
 type RutasProgramada struct {
-type ParticipanteViaje struct {
-	ID        int64
-	ViajeID   int64
-	UsuarioID int64
-}
-
-type SolicitudViaje struct {
-	ID         int64
-	ViajeID    int64
-	PasajeroID int64
-	Estado     string
-}
-
-type Vehiculo struct {
-	ID          int64
-	ConductorID int64
-	Placa       string
-	Marca       string
-	Modelo      string
-	Capacidad   int64
-}
-
-type ViajeInmediato struct {
-
 	ID          int64
 	ConductorID int64
 	Origen      string
 	Destino     string
-
 	Costo       float64
 }
 
@@ -58,8 +32,4 @@ type Usuario struct {
 	Nombre   string
 	Correo   string
 	Password string
-	HoraSalida  string
-	Cupos       int64
-	Estado      string
-
 }

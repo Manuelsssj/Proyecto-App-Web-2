@@ -1,6 +1,6 @@
 package storage
 
-import models "cmd/rideUleam/internal/models/rutaProgramada"
+import models "RideUleam/internal/models/rutaProgramada"
 
 // Almacen define QUÉ sabe hacer el almacenamiento del proyecto,
 // sin decir CÓMO lo hace.

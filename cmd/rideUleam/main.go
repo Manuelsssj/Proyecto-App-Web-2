@@ -4,77 +4,52 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/glebarez/sqlite"
+	"RideUleam/internal/config"
+
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"gorm.io/gorm"
 
-	"cmd/rideUleam/internal/middleware"
-
-	handlersRP "cmd/rideUleam/internal/handlers/rutaProgramada"
-	modelsRP "cmd/rideUleam/internal/models/rutaProgramada"
-	storageRP "cmd/rideUleam/internal/storage/rutaProgramada"
-	usuarioStorage "cmd/rideUleam/internal/storage/usuario"
-
-	handlersVI "cmd/rideUleam/internal/handlers/viajeInmediato"
-	modelsVI "cmd/rideUleam/internal/models/viajeInmediato"
-	serviceVI "cmd/rideUleam/internal/service/viajeInmediato"
-	storageVI "cmd/rideUleam/internal/storage/viajeInmediato"
-
-	handlersUV "cmd/rideUleam/internal/handlers/usuarioVehiculo"
-	modelsUV "cmd/rideUleam/internal/models/usuarioVehiculo"
-	serviceUV "cmd/rideUleam/internal/service/usuarioVehiculo"
-	storageUV "cmd/rideUleam/internal/storage/usuarioVehiculo"
+	handlers "RideUleam/internal/handlers/rutaProgramada"
+	mw "RideUleam/internal/middleware"
+	rutaModels "RideUleam/internal/models/rutaProgramada"
+	usuarioModels "RideUleam/internal/models/usuario"
+	rutaStorage "RideUleam/internal/storage/rutaProgramada"
+	usuarioStorage "RideUleam/internal/storage/usuario"
 )
 
 func main() {
-	gdb, err := gorm.Open(sqlite.Open("rideUleam.db"), &gorm.Config{})
+	// 1. GORM es el dueño del esquema: abre la base, migra y siembra.
+	cfg := config.Cargar()
+
+	gdb, err := rutaStorage.AbrirGorm(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB)
 	if err != nil {
 		log.Fatal("no se pudo abrir la base de datos: ", err)
 	}
 
 	if err := gdb.AutoMigrate(
-		&modelsVI.ViajeInmediato{},
-		&modelsVI.SolicitudViaje{},
-		&modelsVI.ParticipanteViaje{},
-		&modelsUV.Usuario{},
-		&modelsUV.Vehiculo{},
-		&modelsRP.RutaProgramada{},
-		&modelsRP.HorarioRuta{},
-		&modelsRP.MantenimientoVehiculo{},
+		&rutaModels.RutaProgramada{},
+		&rutaModels.HorarioRuta{},
+		&rutaModels.MantenimientoVehiculo{},
+		&usuarioModels.Usuario{},
 	); err != nil {
 		log.Fatal("falló AutoMigrate: ", err)
 	}
 
-	almacenVI := storageVI.NuevoAlmacenSQLite(gdb)
-	almacenUV := storageUV.NuevoAlmacenSQLite(gdb)
-	almacenRP := storageRP.NuevoAlmacenSQLite(gdb)
+	almacenGorm := rutaStorage.NuevoAlmacenSQLite(gdb)
+	almacenGorm.SembrarSiVacio()
 
-	almacenVI.SembrarSiVacio()
-	almacenUV.SembrarSiVacio()
-	almacenRP.SembrarSiVacio()
+	// 2. Repositorio de usuario para Auth.
+	usuarioRepo := usuarioStorage.NewUsuarioGORM(gdb)
 
-	log.Println("Backend de almacenamiento: GORM")
+	// 3. Server con inyección de dependencias.
+	servidor := handlers.NewServer(almacenGorm, usuarioRepo)
 
-	usuarioRepoUV := storageUV.NuevoUsuarioGORM(gdb)
-	authService := serviceUV.NuevoAuthService(usuarioRepoUV)
-	vehiculoService := serviceUV.NuevoVehiculoService(almacenUV)
-
-	viajeInmediatoService := serviceVI.NewViajeInmediatoService(almacenVI)
-	solicitudViajeService := serviceVI.NewSolicitudViajeService(almacenVI)
-	participanteService := serviceVI.NewParticipanteViajeService(almacenVI)
-
-	usuarioRepoRP := usuarioStorage.NewUsuarioGORM(gdb)
-
-	servidorVI := handlersVI.NewServer(viajeInmediatoService, solicitudViajeService, participanteService)
-	servidorUV := handlersUV.NewServer(vehiculoService, authService)
-	servidorRP := handlersRP.NewServer(almacenRP, usuarioRepoRP)
-
+	// 4. Router + middleware.
 	r := chi.NewRouter()
 
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
-	r.Use(middleware.CORS)
+	r.Use(mw.CORS)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -83,57 +58,39 @@ func main() {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/auth/register", servidorUV.Registrar)
-		r.Post("/auth/login", servidorUV.Login)
+		// Auth - rutas públicas
+		r.Post("/auth/register", servidor.Registrar)
+		r.Post("/auth/login", servidor.Login)
 
+		// Rutas protegidas con JWT
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(authService))
+			r.Use(mw.AuthJWT(servidor.Auth))
 
-			r.Get("/viajes-inmediatos", servidorVI.ListarViajeInmediatos)
-			r.Post("/viajes-inmediatos", servidorVI.CrearViajeInmediato)
-			r.Get("/viajes-inmediatos/{id}", servidorVI.ObtenerViajeInmediato)
-			r.Put("/viajes-inmediatos/{id}", servidorVI.ActualizarViajeInmediato)
-			r.Delete("/viajes-inmediatos/{id}", servidorVI.BorrarViajeInmediato)
+			// Rutas Programadas
+			r.Get("/rutas-programadas", servidor.ListarRutasProgramadas)
+			r.Post("/rutas-programadas", servidor.CrearRutaProgramada)
+			r.Get("/rutas-programadas/{id}", servidor.ObtenerRutaProgramada)
+			r.Get("/rutas-programadas/{id}/horarios", servidor.ListarHorariosDeRutaProgramada)
+			r.Get("/rutas-programadas/{id}/detalle", servidor.ObtenerDetalleRutaProgramada)
+			r.Put("/rutas-programadas/{id}", servidor.ActualizarRutaProgramada)
+			r.Delete("/rutas-programadas/{id}", servidor.BorrarRutaProgramada)
 
-			r.Get("/solicitudes-viajes", servidorVI.ListarSolicitudViajes)
-			r.Post("/solicitudes-viajes", servidorVI.CrearSolicitudViaje)
-			r.Get("/solicitudes-viajes/{id}", servidorVI.ObtenerSolicitudViaje)
-			r.Put("/solicitudes-viajes/{id}", servidorVI.ActualizarSolicitudViaje)
-			r.Delete("/solicitudes-viajes/{id}", servidorVI.BorrarSolicitudViaje)
+			// Horarios de Ruta
+			r.Get("/horarios-ruta", servidor.ListarHorariosRuta)
+			r.Post("/horarios-ruta", servidor.CrearHorarioRuta)
+			r.Get("/horarios-ruta/{id}", servidor.ObtenerHorarioRuta)
+			r.Put("/horarios-ruta/{id}", servidor.ActualizarHorarioRuta)
+			r.Delete("/horarios-ruta/{id}", servidor.BorrarHorarioRuta)
 
-			r.Get("/participantes-viajes", servidorVI.ListarParticipanteViajes)
-			r.Post("/participantes-viajes", servidorVI.CrearParticipanteViaje)
-			r.Get("/participantes-viajes/{id}", servidorVI.ObtenerParticipanteViaje)
-			r.Put("/participantes-viajes/{id}", servidorVI.ActualizarParticipanteViaje)
-			r.Delete("/participantes-viajes/{id}", servidorVI.BorrarParticipanteViaje)
+			// Mantenimientos de Vehículo
+			r.Get("/mantenimientos", servidor.ListarMantenimientosVehiculo)
+			r.Post("/mantenimientos", servidor.CrearMantenimientoVehiculo)
+			r.Get("/mantenimientos/{id}", servidor.ObtenerMantenimientoVehiculo)
+			r.Put("/mantenimientos/{id}", servidor.ActualizarMantenimientoVehiculo)
+			r.Delete("/mantenimientos/{id}", servidor.BorrarMantenimientoVehiculo)
 
-			r.Get("/vehiculos", servidorUV.ListarVehiculos)
-			r.Post("/vehiculos", servidorUV.CrearVehiculo)
-			r.Get("/vehiculos/{id}", servidorUV.ObtenerVehiculo)
-			r.Put("/vehiculos/{id}", servidorUV.ActualizarVehiculo)
-			r.Delete("/vehiculos/{id}", servidorUV.BorrarVehiculo)
-
-			r.Get("/rutas-programadas", servidorRP.ListarRutasProgramadas)
-			r.Post("/rutas-programadas", servidorRP.CrearRutaProgramada)
-			r.Get("/rutas-programadas/{id}", servidorRP.ObtenerRutaProgramada)
-			r.Get("/rutas-programadas/{id}/horarios", servidorRP.ListarHorariosDeRutaProgramada)
-			r.Get("/rutas-programadas/{id}/detalle", servidorRP.ObtenerDetalleRutaProgramada)
-			r.Put("/rutas-programadas/{id}", servidorRP.ActualizarRutaProgramada)
-			r.Delete("/rutas-programadas/{id}", servidorRP.BorrarRutaProgramada)
-
-			r.Get("/horarios-ruta", servidorRP.ListarHorariosRuta)
-			r.Post("/horarios-ruta", servidorRP.CrearHorarioRuta)
-			r.Get("/horarios-ruta/{id}", servidorRP.ObtenerHorarioRuta)
-			r.Put("/horarios-ruta/{id}", servidorRP.ActualizarHorarioRuta)
-			r.Delete("/horarios-ruta/{id}", servidorRP.BorrarHorarioRuta)
-
-			r.Get("/mantenimientos", servidorRP.ListarMantenimientosVehiculo)
-			r.Post("/mantenimientos", servidorRP.CrearMantenimientoVehiculo)
-			r.Get("/mantenimientos/{id}", servidorRP.ObtenerMantenimientoVehiculo)
-			r.Put("/mantenimientos/{id}", servidorRP.ActualizarMantenimientoVehiculo)
-			r.Delete("/mantenimientos/{id}", servidorRP.BorrarMantenimientoVehiculo)
-
-			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidorRP.ListarMantenimientosDeVehiculo)
+			// Mantenimientos por Vehículo
+			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidor.ListarMantenimientosDeVehiculo)
 		})
 	})
 

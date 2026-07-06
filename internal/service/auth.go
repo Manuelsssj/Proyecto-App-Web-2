@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	models "cmd/rideUleam/internal/models/usuario"
-	storage "cmd/rideUleam/internal/storage/usuario"
+	models "RideUleam/internal/models/usuario"
+	storage "RideUleam/internal/storage/usuario"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
