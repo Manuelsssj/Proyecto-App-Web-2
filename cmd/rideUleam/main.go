@@ -84,10 +84,11 @@ func main() {
 
 			// Mantenimientos de Vehículo
 			r.Get("/mantenimientos", servidor.ListarMantenimientosVehiculo)
-			r.Post("/mantenimientos", servidor.CrearMantenimientoVehiculo)
 			r.Get("/mantenimientos/{id}", servidor.ObtenerMantenimientoVehiculo)
-			r.Put("/mantenimientos/{id}", servidor.ActualizarMantenimientoVehiculo)
-			r.Delete("/mantenimientos/{id}", servidor.BorrarMantenimientoVehiculo)
+
+			r.With(mw.RolRequerido("admin")).Post("/mantenimientos", servidor.CrearMantenimientoVehiculo)
+			r.With(mw.RolRequerido("admin")).Put("/mantenimientos/{id}", servidor.ActualizarMantenimientoVehiculo)
+			r.With(mw.RolRequerido("admin")).Delete("/mantenimientos/{id}", servidor.BorrarMantenimientoVehiculo)
 
 			// Mantenimientos por Vehículo
 			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidor.ListarMantenimientosDeVehiculo)

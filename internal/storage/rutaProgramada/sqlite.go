@@ -25,14 +25,14 @@ func NuevoAlmacenSQLite(db *gorm.DB) *AlmacenSQLite {
 
 func (a *AlmacenSQLite) ListarRutasProgramadas() []models.RutaProgramada {
 	var rutas []models.RutaProgramada
-	a.db.Find(&rutas)
+	a.db.Preload("Horarios").Find(&rutas)
 	return rutas
 }
 
 func (a *AlmacenSQLite) BuscarRutaProgramadaPorID(id int) (models.RutaProgramada, bool) {
 	var ruta models.RutaProgramada
 
-	if err := a.db.First(&ruta, id).Error; err != nil {
+	if err := a.db.Preload("Horarios").First(&ruta, id).Error; err != nil {
 		return models.RutaProgramada{}, false
 	}
 
