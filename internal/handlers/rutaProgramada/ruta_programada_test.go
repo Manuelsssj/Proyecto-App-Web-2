@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	mw "cmd/rideUleam/internal/middleware"
-	models "cmd/rideUleam/internal/models/rutaProgramada"
-	storage "cmd/rideUleam/internal/storage/rutaProgramada"
+	mw "RideUleam/internal/middleware"
+	models "RideUleam/internal/models/rutaProgramada"
+	storage "RideUleam/internal/storage/rutaProgramada"
 
 	"github.com/go-chi/chi/v5"
 )

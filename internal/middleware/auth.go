@@ -5,38 +5,14 @@ import (
 	"net/http"
 	"strings"
 
-	rootService "cmd/rideUleam/internal/service"
-	service "cmd/rideUleam/internal/service/usuarioVehiculo"
+	"RideUleam/internal/service"
 )
 
-type claveContexto string
+type contextKey string
 
-const ClaveUsuarioID claveContexto = "usuarioID"
+const claimsContextKey contextKey = "claims"
 
-func Auth(auth *service.AuthService) func(http.Handler) http.Handler {
-	return func(siguiente http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			encabezado := r.Header.Get("Authorization")
-			partes := strings.SplitN(encabezado, " ", 2)
-
-			if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") {
-				responderNoAutorizado(w)
-				return
-			}
-
-			usuarioID, err := auth.ValidarToken(partes[1])
-			if err != nil {
-				responderNoAutorizado(w)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), ClaveUsuarioID, usuarioID)
-			siguiente.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-func AuthJWT(authService *rootService.AuthService) func(http.Handler) http.Handler {
+func AuthJWT(authService *service.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")
@@ -54,19 +30,40 @@ func AuthJWT(authService *rootService.AuthService) func(http.Handler) http.Handl
 
 			token := partes[1]
 
-			_, err := authService.ValidarToken(token)
+			claims, err := authService.ValidarToken(token)
 			if err != nil {
 				http.Error(w, "Token inválido", http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), claimsContextKey, claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func responderNoAutorizado(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusUnauthorized)
-	_, _ = w.Write([]byte(`{"error":"token ausente o invalido"}`))
+func ClaimsDesdeContext(ctx context.Context) (*service.Claims, bool) {
+	claims, ok := ctx.Value(claimsContextKey).(*service.Claims)
+	return claims, ok
+}
+
+func RolRequerido(rolesPermitidos ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := ClaimsDesdeContext(r.Context())
+			if !ok {
+				http.Error(w, "Token requerido", http.StatusUnauthorized)
+				return
+			}
+
+			for _, rol := range rolesPermitidos {
+				if claims.Rol == rol {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			http.Error(w, "No tienes permisos para acceder a este recurso", http.StatusForbidden)
+		})
+	}
 }

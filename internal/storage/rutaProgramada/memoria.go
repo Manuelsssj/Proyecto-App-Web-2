@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	models "cmd/rideUleam/internal/models/rutaProgramada"
-	usuarioModels "cmd/rideUleam/internal/models/usuario"
+	models "RideUleam/internal/models/rutaProgramada"
+	usuarioModels "RideUleam/internal/models/usuario"
 )
 
 type Memoria struct {

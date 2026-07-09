@@ -3,7 +3,7 @@ package storage
 import (
 	"time"
 
-	models "cmd/rideUleam/internal/models/usuario"
+	models "RideUleam/internal/models/usuario"
 
 	"gorm.io/gorm"
 )

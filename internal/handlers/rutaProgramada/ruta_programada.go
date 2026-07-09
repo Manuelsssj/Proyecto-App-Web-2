@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	models "cmd/rideUleam/internal/models/rutaProgramada"
-	service "cmd/rideUleam/internal/service/rutaProgramada"
+	models "RideUleam/internal/models/rutaProgramada"
+	service "RideUleam/internal/service/rutaProgramada"
 
 	"github.com/go-chi/chi/v5"
 )

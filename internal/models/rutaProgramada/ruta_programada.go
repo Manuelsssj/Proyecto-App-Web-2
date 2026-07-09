@@ -6,6 +6,8 @@ type RutaProgramada struct {
 	Origen      string  `json:"origen" gorm:"not null"`
 	Destino     string  `json:"destino" gorm:"not null"`
 	Costo       float64 `json:"costo" gorm:"not null"`
+
+	Horarios []HorarioRuta `json:"horarios,omitempty" gorm:"foreignKey:RutaID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (RutaProgramada) TableName() string {
@@ -17,6 +19,8 @@ type HorarioRuta struct {
 	RutaID int    `json:"ruta_id" gorm:"not null"`
 	Dia    string `json:"dia" gorm:"not null"`
 	Hora   string `json:"hora" gorm:"not null"`
+
+	Ruta *RutaProgramada `json:"ruta,omitempty" gorm:"foreignKey:RutaID;references:ID"`
 }
 
 func (HorarioRuta) TableName() string {

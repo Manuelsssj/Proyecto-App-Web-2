@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	models "cmd/rideUleam/internal/models/usuario"
-	storage "cmd/rideUleam/internal/storage/usuario"
+	models "RideUleam/internal/models/usuario"
+	storage "RideUleam/internal/storage/usuario"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -16,7 +16,8 @@ var secretJWT = []byte("clave_secreta_rideuleam")
 const duracionToken = 24 * time.Hour
 
 type Claims struct {
-	UsuarioID int `json:"usuario_id"`
+	UsuarioID int    `json:"usuario_id"`
+	Rol       string `json:"rol"`
 	jwt.RegisteredClaims
 }
 
@@ -30,9 +31,18 @@ func NewAuthService(repo storage.UserRepository) *AuthService {
 	}
 }
 
-func (s *AuthService) Registrar(email, password string) (models.Usuario, error) {
+func (s *AuthService) Registrar(email, password, rol string) (models.Usuario, error) {
 	email = strings.TrimSpace(email)
 	password = strings.TrimSpace(password)
+	rol = strings.TrimSpace(rol)
+
+	if rol == "" {
+		rol = "conductor"
+	}
+
+	if rol != "admin" && rol != "conductor" {
+		return models.Usuario{}, ErrCredencialesInvalidas
+	}
 
 	if email == "" || password == "" {
 		return models.Usuario{}, ErrCredencialesInvalidas
@@ -50,6 +60,7 @@ func (s *AuthService) Registrar(email, password string) (models.Usuario, error) 
 	return s.repo.CrearUsuario(models.Usuario{
 		Email:        email,
 		PasswordHash: string(hash),
+		Rol:          rol,
 	})
 }
 
@@ -76,6 +87,7 @@ func (s *AuthService) Login(email, password string) (string, error) {
 func (s *AuthService) generarToken(usuario models.Usuario) (string, error) {
 	claims := Claims{
 		UsuarioID: usuario.ID,
+		Rol:       usuario.Rol,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duracionToken)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
