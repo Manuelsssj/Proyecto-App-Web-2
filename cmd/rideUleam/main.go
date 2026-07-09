@@ -1,90 +1,74 @@
-// Command cafeteria-api arranca el servidor HTTP de la Cafetería Universitaria.
+// Command rideUleam arranca el servidor HTTP de la API RideULEAM.
 package main
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 	"log"
 	"net/http"
-	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	_ "github.com/glebarez/go-sqlite" // driver database/sql "sqlite" (pure-Go) para el backend sqlc
-	"github.com/glebarez/sqlite"      // driver SQLite pure-Go (sin CGO)
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"gorm.io/gorm"
 
+	"RideUleam/internal/config"
+	"RideUleam/internal/httpserver"
 	"RideUleam/internal/middleware"
 
 	handlersVI "RideUleam/internal/handlers/viajeInmediato"
-	modelsVI "RideUleam/internal/models/viajeInmediato"
 	serviceVI "RideUleam/internal/service/viajeInmediato"
-	storageVI "RideUleam/internal/storage/viajeInmediato"
 
 	handlersUV "RideUleam/internal/handlers/usuarioVehiculo"
-	modelsUV "RideUleam/internal/models/usuarioVehiculo"
 	serviceUV "RideUleam/internal/service/usuarioVehiculo"
-	storageUV "RideUleam/internal/storage/usuarioVehiculo"
+
+	storage "RideUleam/internal/storage"
 )
 
 func main() {
-	// 1. Abrir SQLite y migrar el esquema (crea las tablas si no existen).
-	gdb, err := gorm.Open(sqlite.Open("rideUleam.db"), &gorm.Config{})
+	cfg := config.Cargar()
+	if err := run(cfg); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run(cfg config.Config) error {
+	// 1. Recursos de almacenamiento (Factory): abre DB (segun el motor elegido
+	//    en la config: sqlite local o postgres en Docker), migra, siembra y elige backend.
+	recursos, err := storage.Inicializar(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB, cfg.Backend)
 	if err != nil {
-		log.Fatal("no se pudo abrir la base de datos: ", err)
+		return err
 	}
-	if err := gdb.AutoMigrate(
-		&modelsVI.ViajeInmediato{},
-		&modelsVI.SolicitudViaje{},
-		&modelsVI.ParticipanteViaje{},
-		&modelsUV.Usuario{},
-		&modelsUV.Vehiculo{}); err != nil {
-		log.Fatal("falló AutoMigrate: ", err)
-	}
+	defer func() { _ = recursos.Cerrar() }()
+	log.Printf("Motor de base de datos: %s | Backend: %s", cfg.DBDriver, recursos.BackendUsado)
+	// 2. Capa de servicio. AuthService recibe secreto y duracion por Options,
+	//    tomados de la configuracion (antes eran globales hardcodeadas).
+	viajesInmediatoSvc := serviceVI.NewViajeInmediatoService(recursos.AlmacenVI)
+	solicitudViajeSvc := serviceVI.NewSolicitudViajeService(recursos.AlmacenVI)
+	participanteViajeSvc := serviceVI.NewParticipanteViajeService(recursos.AlmacenVI)
 
-	// 2. Crear el almacenamiento GORM y sembrar si está vacío.
-	almacenGormVI := storageVI.NuevoAlmacenSQLite(gdb)
-	almacenGormUV := storageUV.NuevoAlmacenSQLite(gdb)
+	vehiculoSvc := serviceUV.NuevoVehiculoService(recursos.AlmacenUV)
+	authSvc := serviceUV.NuevoAuthService(
+		recursos.Usuarios,
+		serviceUV.WithSecreto(cfg.JWTSecreto),
+		serviceUV.WithDuracionToken(cfg.JWTDuracion),
+	)
 
-	almacenGormVI.SembrarSiVacio()
-	almacenGormUV.SembrarSiVacio()
+	// 3. Server con sus dependencias agrupadas en un struct (escala sin crecer
+	//    la firma del constructor).
+	servidorVI := handlersVI.NewServer(handlersVI.Deps{
+		ViajeInmediatos:    viajesInmediatoSvc,
+		SolicitudViajes:    solicitudViajeSvc,
+		ParticipanteViajes: participanteViajeSvc,
+	})
 
-	var almacenVI storageVI.Almacen
-	var almacenUV storageUV.Almacen
+	servidorUV := handlersUV.NewServer(handlersUV.Deps{
+		Vehiculos: vehiculoSvc,
+		Auth:      authSvc,
+	})
 
-	switch os.Getenv("STORAGE") {
-	case "sqlc":
-		// Ya migramos y sembramos con GORM; cerramos esa conexión para que
-		// sqlc sea el único dueño del archivo cafeteria.db en tiempo de servicio.
-		if sqlDB, err := gdb.DB(); err == nil {
-			_ = sqlDB.Close()
-		}
-		sdb, err := sql.Open("sqlite", "rideUleam.db")
-		if err != nil {
-			log.Fatal("no se pudo abrir sql.DB para sqlc: ", err)
-		}
-		almacenVI = storageVI.NuevoAlmacenSQLC(sdb)
-		almacenUV = storageUV.NuevoAlmacenSQLC(sdb)
-		log.Println("Backend de almacenamiento: sqlc (database/sql)")
-	default:
-		almacenVI = almacenGormVI
-		almacenUV = almacenGormUV
-		log.Println("Backend de almacenamiento: GORM")
-	}
-
-	// 3. Server con inyección de dependencias. No sabe qué backend recibió.
-
-	usuarioRepo := storageUV.NuevoUsuarioGORM(gdb)
-	authService := serviceUV.NuevoAuthService(usuarioRepo)
-	vehiculoService := serviceUV.NuevoVehiculoService(almacenUV)
-
-	viajeInmediatoService := serviceVI.NewViajeInmediatoService(almacenVI)
-	solicitudViajeService := serviceVI.NewSolicitudViajeService(almacenVI)
-	participanteService := serviceVI.NewParticipanteViajeService(almacenVI)
-
-	servidorVI := handlersVI.NewServer(viajeInmediatoService, solicitudViajeService, participanteService)
-	servidorUV := handlersUV.NewServer(vehiculoService, authService)
-
-	// 4. Router + middleware.
+	// 4. Router + middleware global.
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
@@ -92,18 +76,17 @@ func main() {
 
 	// 5. Rutas versionadas /api/v1/.
 	r.Route("/api/v1", func(r chi.Router) {
-
+		// Publicas: registro y login.
 		r.Post("/auth/register", servidorUV.Registrar)
 		r.Post("/auth/login", servidorUV.Login)
-		// =========================
-		// Viajes Inmediatos
-		// =========================
-		r.Group(func(r chi.Router) {
 
-			r.Use(middleware.Auth(authService))
+		// Protegidas: exigen JWT valido en Authorization: Bearer <token>.
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
 
 			r.Get("/viajes-inmediatos", servidorVI.ListarViajeInmediatos)
-			r.Post("/viajes-inmediatos", servidorVI.CrearViajeInmediato)
+			r.With(middleware.RequiereRol("admin", "conductor")).
+				Post("/viajes-inmediatos", servidorVI.CrearViajeInmediato)
 			r.Get("/viajes-inmediatos/{id}", servidorVI.ObtenerViajeInmediato)
 			r.Put("/viajes-inmediatos/{id}", servidorVI.ActualizarViajeInmediato)
 			r.Delete("/viajes-inmediatos/{id}", servidorVI.BorrarViajeInmediato)
@@ -132,11 +115,46 @@ func main() {
 			r.Post("/vehiculos", servidorUV.CrearVehiculo)
 			r.Get("/vehiculos/{id}", servidorUV.ObtenerVehiculo)
 			r.Put("/vehiculos/{id}", servidorUV.ActualizarVehiculo)
-			r.Delete("/vehiculos/{id}", servidorUV.BorrarVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/vehiculos/{id}", servidorUV.BorrarVehiculo)
 		})
-
 	})
 
-	log.Println("Servidor escuchando en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	// 6. Servidor HTTP configurado por Options (puerto + timeouts desde config).
+	srv := httpserver.Nuevo(
+		r,
+		httpserver.ConPuerto(cfg.Puerto),
+		httpserver.ConReadTimeout(cfg.ReadTimeout),
+		httpserver.ConWriteTimeout(cfg.WriteTimeout),
+	)
+
+	// 7. Contexto que se cancela al recibir Ctrl+C o SIGTERM.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// 8. Arrancar el servidor en una goroutine para no bloquear la espera de la senal.
+	errServidor := make(chan error, 1)
+	go func() {
+		log.Printf("Servidor escuchando en http://localhost%s", cfg.Puerto)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errServidor <- err
+		}
+	}()
+
+	// 9. Esperar: o el servidor falla, o llega la senal de apagado.
+	select {
+	case err := <-errServidor:
+		return err
+	case <-ctx.Done():
+		log.Println("Senal de apagado recibida, cerrando ordenadamente...")
+	}
+
+	// 10. Graceful shutdown: hasta 10s para terminar las requests en curso.
+	ctxApagado, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelar()
+	if err := srv.Shutdown(ctxApagado); err != nil {
+		return err
+	}
+	log.Println("Servidor detenido limpiamente.")
+	return nil
 }

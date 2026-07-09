@@ -9,6 +9,7 @@ import (
 type credenciales struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Rol      string `json:"rol,omitempty"`
 }
 
 // Registrar atiende POST /api/v1/auth/register.
@@ -18,7 +19,7 @@ func (s *Server) Registrar(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, "JSON invalido: "+err.Error())
 		return
 	}
-	usuario, err := s.Auth.Registrar(c.Email, c.Password)
+	usuario, err := s.Auth.Registrar(c.Email, c.Password, c.Rol)
 	if err != nil {
 		RespondError(w, statusDeError(err), err.Error())
 		return

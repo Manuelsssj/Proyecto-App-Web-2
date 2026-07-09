@@ -29,7 +29,7 @@ type SolicitudViajeRepository interface {
 }
 type ParticipanteViajeRepository interface {
 
-	//ParticipanteViaje
+	// ParticipanteViaje
 	ListarParticipanteViajes() []models.ParticipanteViaje
 	BuscarParticipanteViajePorID(id int) (models.ParticipanteViaje, bool)
 	CrearParticipanteViaje(pv models.ParticipanteViaje) models.ParticipanteViaje

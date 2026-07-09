@@ -36,7 +36,7 @@ func NuevaMemoria() *Memoria {
 // vehiculos
 // =========================================================
 
-// SeedViajesInmediatos carga ViajesInmediatos iniciales en memoria.
+// SeedVehiculos carga vehiculos iniciales en memoria.
 func (m *Memoria) SeedVehiculos() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -54,7 +54,7 @@ func (m *Memoria) SeedVehiculos() {
 
 }
 
-// ListarViajesInmediatos devuelve todos los productos en memoria.
+// ListarVehiculos devuelve todos los vehiculos en memoria.
 func (m *Memoria) ListarVehiculos() []models.Vehiculo {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -77,7 +77,7 @@ func (m *Memoria) BuscarVehiculoPorID(id int) (models.Vehiculo, bool) {
 	return models.Vehiculo{}, false
 }
 
-// CrearViajeInmediato agrega un producto nuevo y devuelve el producto con ID asignado.
+// CrearVehiculo agrega un vehiculo nuevo y lo devuelve con ID asignado.
 func (m *Memoria) CrearVehiculo(v models.Vehiculo) models.Vehiculo {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -88,7 +88,7 @@ func (m *Memoria) CrearVehiculo(v models.Vehiculo) models.Vehiculo {
 	return v
 }
 
-// ActualizarViajeInmediato reemplaza el producto con el ID dado.
+// ActualizarVehiculo reemplaza el vehiculo con el ID dado.
 func (m *Memoria) ActualizarVehiculo(id int, datos models.Vehiculo) (models.Vehiculo, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -103,7 +103,7 @@ func (m *Memoria) ActualizarVehiculo(id int, datos models.Vehiculo) (models.Vehi
 	return models.Vehiculo{}, false
 }
 
-// BorrarViajeInmediato elimina el producto con el ID dado
+// BorrarVehiculo elimina el vehiculo con el ID dado.
 func (m *Memoria) BorrarVehiculo(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

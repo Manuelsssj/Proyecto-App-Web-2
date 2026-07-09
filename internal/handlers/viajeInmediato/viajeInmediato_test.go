@@ -5,100 +5,111 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// construirEntorno arma el MISMO router que main.go (mismas rutas, mismo
-// middleware.Auth real) pero con almacen en memoria y repo de usuarios fake.
-// Devuelve el handler listo para httptest y un token valido ya emitido.
-//
-// Clave pedagogica: probamos a traves del middleware REAL, no de uno simplificado.
-// Si el wiring de la ruta protegida se rompe, este test se entera.
-
-// registrarYObtenerToken hace register + login contra el propio router para
-// conseguir un JWT valido, igual que lo haria un cliente real.
-
-// TestCrearProducto_Exitoso: POST con token y cuerpo valido -> 201 Created.
-
-func TestCrearViajeInmediatoExitoso(t *testing.T) {
-	h, token := construirEntorno(t)
-
-	body := `{
-		"conductor_id":1,
-		"origen":"Lima",
-		"destino":"Callao",
-		"hora_salida":"08:00",
-		"cupos":4,
-		"estado":"activo"
-	}`
-
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/viajes-inmediatos", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+token)
+// ejecutar corre una peticion contra el handler y devuelve el recorder.
+func ejecutar(h http.Handler, req *http.Request) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-
 	h.ServeHTTP(rec, req)
-
-	require.Equal(t, http.StatusCreated, rec.Code)
-
-	var creado models.ViajeInmediato
-	require.NoError(t, json.NewDecoder(rec.Body).Decode(&creado))
-
-	assert.NotZero(t, creado.ID)
-	assert.Equal(t, 1, creado.ConductorID)
-	assert.Equal(t, "Lima", creado.Origen)
-	assert.Equal(t, "Callao", creado.Destino)
-	assert.Equal(t, "08:00", creado.HoraSalida)
-	assert.Equal(t, 4, creado.Cupos)
-	assert.Equal(t, "activo", creado.Estado)
+	return rec
 }
 
-// TestObtenerProducto_NoEncontrado: id inexistente -> 404 Not Found.
-func TestObtenerViajeInmediato_NoEncontrado(t *testing.T) {
-	h, token := construirEntorno(t)
+func TestListarViajeInmediatos_OK(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/viajes-inmediatos/9999", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos", "", token))
 
-	h.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var lista []models.ViajeInmediato
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&lista))
+	assert.Len(t, lista, 1) // el producto sembrado
 }
 
-func TestCrearViajeInmediato_Invalido(t *testing.T) {
-	h, token := construirEntorno(t)
-	body := `{
-		"conductor_id":0,
-		"origen":"Lima",
-		"destino":"Callao",
-		"hora_salida":"08:00",
-		"cupos":4,
-		"estado":"activo"
-	}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/viajes-inmediatos", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
+func TestObtenerViajeInmediato(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
 
-	h.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	t.Run("existe -> 200", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos/1", "", token))
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos/9999", "", token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+	t.Run("id no numerico -> 400", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos/abc", "", token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
 }
 
-// TestRutaProtegida_SinToken: sin header Authorization, el middleware corta
-// antes de llegar al handler -> 401 Unauthorized.
-func TestRutaViajeInmediatoProtegida_SinToken(t *testing.T) {
-	h, _ := construirEntorno(t)
-	body := `{"conductor_id":1,"origen":"Universidad","destino":"Centro","hora_salida":"08:00","cupos":4,"estado":"activo"}`
+func TestCrearViajeInmediato(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/viajes-inmediatos", strings.NewReader(body))
-	// A proposito: NO seteamos Authorization.
-	rec := httptest.NewRecorder()
+	t.Run("valido -> 201", func(t *testing.T) {
+		body := `{"conductor_id":1,"origen":"ULEAM","destino":"Centro","hora_salida":"08:00","cupos":4,"estado":"Disponible"}`
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/viajes-inmediatos", body, token))
+		require.Equal(t, http.StatusCreated, rec.Code)
+		var creado models.ViajeInmediato
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&creado))
+		assert.NotZero(t, creado.ID)
+	})
+	t.Run("conductor_id invalido -> 400", func(t *testing.T) {
+		body := `{"conductor_id":0,"origen":"ULEAM","destino":"Centro"}`
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/viajes-inmediatos", body, token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+	t.Run("JSON malformado -> 400", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/viajes-inmediatos", `{roto`, token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+}
 
-	h.ServeHTTP(rec, req)
+func TestActualizarViajeInmediato(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
 
+	t.Run("valido -> 200", func(t *testing.T) {
+		body := `{"conductor_id":2,"origen":"Terminal","destino":"ULEAM","hora_salida":"10:00","cupos":3,"estado":"Disponible"}`
+		rec := ejecutar(h, jsonReq(http.MethodPut, "/api/v1/viajes-inmediatos/1", body, token))
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		body := `{"conductor_id":1,"origen":"A","destino":"B"}`
+		rec := ejecutar(h, jsonReq(http.MethodPut, "/api/v1/viajes-inmediatos/9999", body, token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}
+
+func TestBorrarViajeInmediato(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
+
+	t.Run("existe -> 204", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodDelete, "/api/v1/viajes-inmediatos/1", "", token))
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodDelete, "/api/v1/viajes-inmediatos/9999", "", token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}
+
+// El corazon de la seguridad: el middleware corta ANTES del handler.
+func TestViajeInmediato_SinToken(t *testing.T) {
+	h, _, _ := construirEntorno()
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos", "", "")) // sin Bearer
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestViajeInmediato_TokenInvalido(t *testing.T) {
+	h, _, _ := construirEntorno()
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/viajes-inmediatos", "", "token.falso.123"))
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }

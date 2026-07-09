@@ -23,7 +23,6 @@ type Almacen interface {
 }
 
 type UsuarioRepository interface {
-	// ViajeInmediato
 	CrearUsuario(u models.Usuario) (models.Usuario, error)
 	BuscarUsuarioPorEmail(email string) (models.Usuario, bool)
 }

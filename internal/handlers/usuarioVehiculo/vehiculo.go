@@ -2,34 +2,19 @@
 package handlers
 
 import (
+	models "RideUleam/internal/models/usuarioVehiculo"
 	"encoding/json"
 	"net/http"
-	"strconv"
-
-	"github.com/go-chi/chi/v5"
-
-	models "RideUleam/internal/models/usuarioVehiculo"
 )
 
-// // Server agrupa las dependencias compartidas por los handlers.
-// // Recibe el storage por inyección de dependencias desde main.
-// type Server struct {
-// 	Storage storage.Almacen
-// }
-
-// // NewServer construye un Server listo para usar.
-// func NewServer(s storage.Almacen) *Server {
-// 	return &Server{Storage: s}
-// }
-
-// ListarProductos atiende GET /api/v1/productos.
+// ListarVehiculos atiende GET /api/v1/vehiculos.
 func (s *Server) ListarVehiculos(w http.ResponseWriter, _ *http.Request) {
 	RespondJSON(w, http.StatusOK, s.Vehiculos.Listar())
 }
 
-// ObtenerProducto atiende GET /api/v1/productos/{id}.
+// ObtenerVehiculo atiende GET /api/v1/vehiculos/{id}.
 func (s *Server) ObtenerVehiculo(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -42,7 +27,7 @@ func (s *Server) ObtenerVehiculo(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, vehiculo)
 }
 
-// CrearProducto atiende POST /api/v1/productos.
+// CrearVehiculo atiende POST /api/v1/vehiculos.
 func (s *Server) CrearVehiculo(w http.ResponseWriter, r *http.Request) {
 	var nuevo models.Vehiculo
 	if err := json.NewDecoder(r.Body).Decode(&nuevo); err != nil {
@@ -57,9 +42,9 @@ func (s *Server) CrearVehiculo(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusCreated, creado)
 }
 
-// ActualizarProducto atiende PUT /api/v1/productos/{id}.
+// ActualizarVehiculo atiende PUT /api/v1/vehiculos/{id}.
 func (s *Server) ActualizarVehiculo(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -77,9 +62,9 @@ func (s *Server) ActualizarVehiculo(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, actualizado)
 }
 
-// BorrarProducto atiende DELETE /api/v1/productos/{id}.
+// BorrarVehiculo atiende DELETE /api/v1/vehiculos/{id}.
 func (s *Server) BorrarVehiculo(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return

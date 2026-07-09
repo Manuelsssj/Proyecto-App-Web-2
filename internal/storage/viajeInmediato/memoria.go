@@ -41,7 +41,7 @@ func NuevaMemoria() *Memoria {
 // ViajeInmediato
 // =========================================================
 
-// SeedProductos carga productos iniciales en memoria.
+// SeedViajeInmediatos carga viajes inmediatos iniciales en memoria.
 func (m *Memoria) SeedViajeInmediatos() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -57,7 +57,7 @@ func (m *Memoria) SeedViajeInmediatos() {
 	m.nextViajeInmediatoID = 7
 }
 
-// ListarProductos devuelve todos los productos en memoria.
+// ListarViajeInmediatos devuelve todos los viajes inmediatos en memoria.
 func (m *Memoria) ListarViajeInmediatos() []models.ViajeInmediato {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -80,7 +80,7 @@ func (m *Memoria) BuscarViajeInmediatoPorID(id int) (models.ViajeInmediato, bool
 	return models.ViajeInmediato{}, false
 }
 
-// CrearProducto agrega un producto nuevo y devuelve el producto con ID asignado.
+// CrearViajeInmediato agrega un viaje inmediato y lo devuelve con ID asignado.
 func (m *Memoria) CrearViajeInmediato(vi models.ViajeInmediato) models.ViajeInmediato {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -91,7 +91,7 @@ func (m *Memoria) CrearViajeInmediato(vi models.ViajeInmediato) models.ViajeInme
 	return vi
 }
 
-// ActualizarProducto reemplaza el producto con el ID dado.
+// ActualizarViajeInmediato reemplaza el viaje inmediato con el ID dado.
 func (m *Memoria) ActualizarViajeInmediato(id int, datos models.ViajeInmediato) (models.ViajeInmediato, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -106,7 +106,7 @@ func (m *Memoria) ActualizarViajeInmediato(id int, datos models.ViajeInmediato) 
 	return models.ViajeInmediato{}, false
 }
 
-// BorrarProducto elimina el producto con el ID dado.
+// BorrarViajeInmediato elimina el viaje inmediato con el ID dado.
 func (m *Memoria) BorrarViajeInmediato(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

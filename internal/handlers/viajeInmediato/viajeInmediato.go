@@ -11,12 +11,12 @@ import (
 	models "RideUleam/internal/models/viajeInmediato"
 )
 
-// ListarProductos atiende GET /api/v1/productos.
+// ListarViajeInmediatos atiende GET /api/v1/viajes-inmediatos.
 func (s *Server) ListarViajeInmediatos(w http.ResponseWriter, _ *http.Request) {
 	RespondJSON(w, http.StatusOK, s.ViajeInmediatos.Listar())
 }
 
-// ObtenerProducto atiende GET /api/v1/productos/{id}.
+// ObtenerViajeInmediato atiende GET /api/v1/viajes-inmediatos/{id}.
 func (s *Server) ObtenerViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -31,7 +31,7 @@ func (s *Server) ObtenerViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, viajeInmediato)
 }
 
-// CrearProducto atiende POST /api/v1/productos.
+// CrearViajeInmediato atiende POST /api/v1/viajes-inmediatos.
 func (s *Server) CrearViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	var nuevo models.ViajeInmediato
 	if err := json.NewDecoder(r.Body).Decode(&nuevo); err != nil {
@@ -46,7 +46,7 @@ func (s *Server) CrearViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusCreated, creado)
 }
 
-// ActualizarProducto atiende PUT /api/v1/productos/{id}.
+// ActualizarViajeInmediato atiende PUT /api/v1/viajes-inmediatos/{id}.
 func (s *Server) ActualizarViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *Server) ActualizarViajeInmediato(w http.ResponseWriter, r *http.Request
 	RespondJSON(w, http.StatusOK, actualizado)
 }
 
-// BorrarProducto atiende DELETE /api/v1/productos/{id}.
+// BorrarViajeInmediato atiende DELETE /api/v1/viajes-inmediatos/{id}.
 func (s *Server) BorrarViajeInmediato(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

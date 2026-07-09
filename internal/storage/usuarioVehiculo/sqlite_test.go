@@ -8,48 +8,87 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestSQLite_CrearYBuscarVehiculo(t *testing.T) {
-	// Base de datos SQLite en memoria
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+// nuevaDBPrueba abre una SQLite en memoria, migra el esquema y la devuelve.
+// SetMaxOpenConns(1) garantiza que migracion y consultas usen la MISMA conexion
+// (con ":memory:" cada conexion tendria su propia base, vacia).
+func nuevaDBPrueba(t *testing.T) *gorm.DB {
+	t.Helper()
+	gdb, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("no se pudo abrir sqlite en memoria: %v", err)
+		t.Fatalf("no se pudo abrir la base de prueba: %v", err)
 	}
-
-	// Crear la tabla
-	if err := db.AutoMigrate(&models.Vehiculo{}); err != nil {
-		t.Fatalf("falló AutoMigrate: %v", err)
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		t.Fatalf("no se pudo obtener *sql.DB: %v", err)
 	}
+	sqlDB.SetMaxOpenConns(1)
+	if err := gdb.AutoMigrate(&models.Vehiculo{}, &models.Usuario{}); err != nil {
+		t.Fatalf("fallo AutoMigrate: %v", err)
+	}
+	return gdb
+}
 
-	// Repositorio real
-	repo := NuevoAlmacenSQLite(db)
+func TestSQLite_VehiculoCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
 
-	// Crear un vehículo
-	creado := repo.CrearVehiculo(models.Vehiculo{
+	// Crear: GORM debe asignar el ID autogenerado.
+	creado := alm.CrearVehiculo(models.Vehiculo{
 		ConductorID: 1,
-		Placa:       "MBA-1234",
-		Marca:       "Toyota",
-		Modelo:      "Hiace",
-		Capacidad:   30,
+		Placa:       "MBT-456",
+		Marca:       "Chevrolet",
+		Modelo:      "Spark",
+		Capacidad:   4,
 	})
-
 	if creado.ID == 0 {
-		t.Fatalf("esperaba que GORM asignara un ID")
+		t.Fatalf("esperaba un ID asignado por la base, obtuve 0")
 	}
 
-	// Buscar por ID
-	encontrado, ok := repo.BuscarVehiculoPorID(creado.ID)
+	// Buscar el recien creado.
+	encontrado, ok := alm.BuscarVehiculoPorID(creado.ID)
 	if !ok {
-		t.Fatalf("no se encontró el vehículo recién creado")
+		t.Fatalf("no se encontro el Vehiculo id=%d", creado.ID)
+	}
+	if encontrado.Placa != "MBT-456" {
+		t.Errorf("placa = %q; esperaba %q", encontrado.Placa, "MBT-456")
 	}
 
-	if encontrado.Placa != "MBA-1234" {
-		t.Errorf("placa = %q; esperaba %q", encontrado.Placa, "MBA-1234")
+	// Actualizar.
+	if _, ok := alm.ActualizarVehiculo(creado.ID, models.Vehiculo{
+		ConductorID: 2,
+		Placa:       "ABC-123",
+		Marca:       "Toyota",
+		Modelo:      "Corolla",
+		Capacidad:   5,
+	}); !ok {
+		t.Fatalf("no se pudo actualizar el Vehiculo id=%d", creado.ID)
 	}
 
-	// Verificar que aparece al listar
-	lista := repo.ListarVehiculos()
+	// Borrar y confirmar que ya no esta.
+	if !alm.BorrarVehiculo(creado.ID) {
+		t.Errorf("esperaba poder borrar el Vehiculo id=%d", creado.ID)
+	}
+	if _, ok := alm.BuscarVehiculoPorID(creado.ID); ok {
+		t.Errorf("el Vehiculo id=%d deberia haber sido borrado", creado.ID)
+	}
+}
 
-	if len(lista) != 1 {
-		t.Fatalf("esperaba 1 vehículo, obtuvo %d", len(lista))
+func TestSQLite_BuscarInexistente(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	// El error de GORM (registro no encontrado) se traduce a comma-ok = false.
+	if _, ok := alm.BuscarVehiculoPorID(999); ok {
+		t.Errorf("esperaba ok=false para un id inexistente")
+	}
+}
+
+// TestSQLite_UsuarioEmailUnico prueba una garantia que SOLO la base puede dar:
+// el indice unico de email impide dos usuarios con el mismo correo.
+func TestSQLite_UsuarioEmailUnico(t *testing.T) {
+	repo := NuevoUsuarioGORM(nuevaDBPrueba(t))
+
+	if _, err := repo.CrearUsuario(models.Usuario{Email: "ana@uleam.edu.ec", PasswordHash: "hash1"}); err != nil {
+		t.Fatalf("el primer usuario deberia crearse sin error: %v", err)
+	}
+	if _, err := repo.CrearUsuario(models.Usuario{Email: "ana@uleam.edu.ec", PasswordHash: "hash2"}); err == nil {
+		t.Errorf("esperaba error por email duplicado (indice unico), no lo hubo")
 	}
 }
