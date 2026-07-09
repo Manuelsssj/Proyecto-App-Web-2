@@ -4,24 +4,29 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/glebarez/sqlite"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"suscripciones-api/internal/handlers"
+	handlers "suscripciones-api/internal/handlers/suscripciones"
 	"suscripciones-api/internal/middleware"
-	"suscripciones-api/internal/models"
-	"suscripciones-api/internal/service"
-	"suscripciones-api/internal/storage"
+	models "suscripciones-api/internal/models/suscripciones"
+	service "suscripciones-api/internal/service/suscripciones"
+	storage "suscripciones-api/internal/storage/suscripciones"
 )
 
 func main() {
-	// 1. GORM es el DUEÑO DEL ESQUEMA: abre la DB y migra las tablas.
-	gdb, err := gorm.Open(sqlite.Open("suscripciones.db"), &gorm.Config{})
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "host=localhost user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable TimeZone=America/Guayaquil"
+	}
+
+	gdb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("no se pudo abrir la base de datos: ", err)
+		log.Fatal("no se pudo conectar a PostgreSQL: ", err)
 	}
 
 	if err := gdb.AutoMigrate(
@@ -32,31 +37,34 @@ func main() {
 	); err != nil {
 		log.Fatal("falló AutoMigrate: ", err)
 	}
+	if err := storage.SembrarDatosIniciales(gdb); err != nil {
+		log.Fatal("falló el seeder: ", err)
+	}
 
-	// 2. Crear el backend de almacenamiento con GORM.
-	almacen := storage.NuevoAlmacenSQLite(gdb)
-	log.Println("Backend de almacenamiento: GORM")
+	almacen := storage.NuevoAlmacenGORM(gdb)
+	log.Println("Backend de almacenamiento: GORM + PostgreSQL")
 
-	// 3. Servicios con inyección de dependencias.
 	usuarioRepo := storage.NewUsuarioGORM(gdb)
 	authService := service.NewAuthService(usuarioRepo)
 	suscripcionSrv := service.NewSuscripcionService(almacen)
 	planSrv := service.NewPlanService(almacen)
 	historialSrv := service.NewHistorialService(almacen)
 
-	// 4. Handlers.
 	authH := handlers.NewAuthHandler(authService)
 	suscripcionH := handlers.NewSuscripcionHandler(suscripcionSrv)
 	planH := handlers.NewPlanHandler(planSrv)
 	historialH := handlers.NewHistorialHandler(historialSrv)
 
-	// 5. Router + middleware.
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS)
 
-	// 6. Rutas versionadas /api/v1/.
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/auth/register", authH.Registrar)
 		r.Post("/auth/login", authH.Login)
@@ -84,6 +92,12 @@ func main() {
 		})
 	})
 
-	log.Println("Servidor escuchando en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	puerto := os.Getenv("PORT")
+	if puerto == "" {
+		puerto = "8080"
+	}
+
+	log.Println("Servidor escuchando en http://localhost:" + puerto)
+	log.Fatal(http.ListenAndServe(":"+puerto, r))
+
 }

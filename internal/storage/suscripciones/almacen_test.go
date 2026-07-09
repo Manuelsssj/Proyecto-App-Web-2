@@ -1,15 +1,14 @@
 package storage
 
 import (
+	models "suscripciones-api/internal/models/suscripciones"
 	"testing"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
-
-	"suscripciones-api/internal/models"
 )
 
-func TestAlmacenSQLite_CrearYListarSuscripcion(t *testing.T) {
+func TestAlmacenGORM_CrearYListarSuscripcion(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("no se pudo abrir sqlite en memoria: %v", err)
@@ -20,7 +19,7 @@ func TestAlmacenSQLite_CrearYListarSuscripcion(t *testing.T) {
 		t.Fatalf("falló AutoMigrate: %v", err)
 	}
 
-	almacen := NuevoAlmacenSQLite(db)
+	almacen := NuevoAlmacenGORM(db)
 
 	creada, err := almacen.CrearSuscripcion(models.SuscripcionRuta{
 		RutaID:    1,

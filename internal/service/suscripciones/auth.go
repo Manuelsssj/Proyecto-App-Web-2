@@ -1,23 +1,31 @@
 package service
 
 import (
+	"os"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	"suscripciones-api/internal/models"
-	"suscripciones-api/internal/storage"
+	models "suscripciones-api/internal/models/suscripciones"
+	storage "suscripciones-api/internal/storage/suscripciones"
 )
 
-var secretJWT = []byte("cualquier_cosa_secreta")
+func obtenerSecretoJWT() []byte {
+	secreto := os.Getenv("JWT_SECRETO")
+	if secreto == "" {
+		secreto = "rideuleam-secreto-dev"
+	}
+	return []byte(secreto)
+}
 
 const duracionToken = 24 * time.Hour
 
 type Claims struct {
 	Email     string `json:"email"`
 	UsuarioID int    `json:"usuario_id"`
+	Rol       string `json:"rol"`
 	jwt.RegisteredClaims
 }
 
@@ -51,6 +59,7 @@ func (s *AuthService) Registrar(name, email, password string) (models.Usuario, e
 		Name:         name,
 		Email:        email,
 		PasswordHash: string(hash),
+		Rol:          "usuario",
 	})
 }
 
@@ -78,6 +87,7 @@ func (s *AuthService) GenerarToken(u models.Usuario) (string, error) {
 	claims := &Claims{
 		Email:     u.Email,
 		UsuarioID: u.ID,
+		Rol:       u.Rol,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duracionToken)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -85,7 +95,7 @@ func (s *AuthService) GenerarToken(u models.Usuario) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secretJWT)
+	return token.SignedString(obtenerSecretoJWT())
 }
 
 func (s *AuthService) ValidarToken(token string) (int, error) {
@@ -93,7 +103,7 @@ func (s *AuthService) ValidarToken(token string) (int, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrCredencialesInvalidas
 		}
-		return secretJWT, nil
+		return obtenerSecretoJWT(), nil
 	})
 
 	if err != nil || !parsedToken.Valid {

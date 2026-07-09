@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"suscripciones-api/internal/service"
+	"suscripciones-api/internal/service/suscripciones"
 )
 
 type credenciales struct {

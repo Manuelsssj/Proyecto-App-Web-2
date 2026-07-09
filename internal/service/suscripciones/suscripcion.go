@@ -1,8 +1,8 @@
 package service
 
 import (
-	"suscripciones-api/internal/models"
-	"suscripciones-api/internal/storage"
+	"suscripciones-api/internal/models/suscripciones"
+	"suscripciones-api/internal/storage/suscripciones"
 )
 
 // SuscripcionService contiene la lógica de negocio de las suscripciones a rutas.

@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"suscripciones-api/internal/models"
-	"suscripciones-api/internal/service"
+	"suscripciones-api/internal/models/suscripciones"
+	"suscripciones-api/internal/service/suscripciones"
 )
 
 // HistorialHandler maneja las rutas HTTP del historial de suscripciones.

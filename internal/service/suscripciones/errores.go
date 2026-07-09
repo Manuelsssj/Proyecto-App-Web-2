@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	"suscripciones-api/internal/storage"
+	"suscripciones-api/internal/storage/suscripciones"
 )
 
 // Reutilizamos los errores definidos en la capa de almacenamiento

@@ -5,20 +5,20 @@ import (
 
 	"gorm.io/gorm"
 
-	"suscripciones-api/internal/models"
+	models "suscripciones-api/internal/models/suscripciones"
 )
 
-// AlmacenSQLite es una implementación de Almacen usando GORM y SQLite.
-type AlmacenSQLite struct {
+// AlmacenGORM es una implementación de Almacen usando GORM.
+type AlmacenGORM struct {
 	db *gorm.DB
 }
 
-// NuevoAlmacenSQLite crea un almacén SQLite usando una conexión GORM existente.
-func NuevoAlmacenSQLite(db *gorm.DB) *AlmacenSQLite {
-	return &AlmacenSQLite{db: db}
+// NuevoAlmacenGORM crea un almacén usando una conexión GORM existente.
+func NuevoAlmacenGORM(db *gorm.DB) *AlmacenGORM {
+	return &AlmacenGORM{db: db}
 }
 
-func (a *AlmacenSQLite) ListarSuscripciones() ([]models.SuscripcionRuta, error) {
+func (a *AlmacenGORM) ListarSuscripciones() ([]models.SuscripcionRuta, error) {
 	var lista []models.SuscripcionRuta
 	if err := a.db.Order("id").Find(&lista).Error; err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (a *AlmacenSQLite) ListarSuscripciones() ([]models.SuscripcionRuta, error) 
 	return lista, nil
 }
 
-func (a *AlmacenSQLite) ObtenerSuscripcion(id int) (models.SuscripcionRuta, error) {
+func (a *AlmacenGORM) ObtenerSuscripcion(id int) (models.SuscripcionRuta, error) {
 	var s models.SuscripcionRuta
 	if err := a.db.First(&s, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -37,14 +37,14 @@ func (a *AlmacenSQLite) ObtenerSuscripcion(id int) (models.SuscripcionRuta, erro
 	return s, nil
 }
 
-func (a *AlmacenSQLite) CrearSuscripcion(s models.SuscripcionRuta) (models.SuscripcionRuta, error) {
+func (a *AlmacenGORM) CrearSuscripcion(s models.SuscripcionRuta) (models.SuscripcionRuta, error) {
 	if err := a.db.Create(&s).Error; err != nil {
 		return models.SuscripcionRuta{}, err
 	}
 	return s, nil
 }
 
-func (a *AlmacenSQLite) ActualizarSuscripcion(s models.SuscripcionRuta) (models.SuscripcionRuta, error) {
+func (a *AlmacenGORM) ActualizarSuscripcion(s models.SuscripcionRuta) (models.SuscripcionRuta, error) {
 	var actual models.SuscripcionRuta
 	if err := a.db.First(&actual, s.ID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,7 +62,7 @@ func (a *AlmacenSQLite) ActualizarSuscripcion(s models.SuscripcionRuta) (models.
 	return actual, nil
 }
 
-func (a *AlmacenSQLite) EliminarSuscripcion(id int) error {
+func (a *AlmacenGORM) EliminarSuscripcion(id int) error {
 	res := a.db.Delete(&models.SuscripcionRuta{}, id)
 	if res.Error != nil {
 		return res.Error
@@ -73,7 +73,7 @@ func (a *AlmacenSQLite) EliminarSuscripcion(id int) error {
 	return nil
 }
 
-func (a *AlmacenSQLite) ListarPlanes() ([]models.PlanPago, error) {
+func (a *AlmacenGORM) ListarPlanes() ([]models.PlanPago, error) {
 	var lista []models.PlanPago
 	if err := a.db.Order("id").Find(&lista).Error; err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (a *AlmacenSQLite) ListarPlanes() ([]models.PlanPago, error) {
 	return lista, nil
 }
 
-func (a *AlmacenSQLite) ObtenerPlan(id int) (models.PlanPago, error) {
+func (a *AlmacenGORM) ObtenerPlan(id int) (models.PlanPago, error) {
 	var p models.PlanPago
 	if err := a.db.First(&p, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -92,14 +92,14 @@ func (a *AlmacenSQLite) ObtenerPlan(id int) (models.PlanPago, error) {
 	return p, nil
 }
 
-func (a *AlmacenSQLite) CrearPlan(p models.PlanPago) (models.PlanPago, error) {
+func (a *AlmacenGORM) CrearPlan(p models.PlanPago) (models.PlanPago, error) {
 	if err := a.db.Create(&p).Error; err != nil {
 		return models.PlanPago{}, err
 	}
 	return p, nil
 }
 
-func (a *AlmacenSQLite) ActualizarPlan(p models.PlanPago) (models.PlanPago, error) {
+func (a *AlmacenGORM) ActualizarPlan(p models.PlanPago) (models.PlanPago, error) {
 	var actual models.PlanPago
 	if err := a.db.First(&actual, p.ID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -117,7 +117,7 @@ func (a *AlmacenSQLite) ActualizarPlan(p models.PlanPago) (models.PlanPago, erro
 	return actual, nil
 }
 
-func (a *AlmacenSQLite) EliminarPlan(id int) error {
+func (a *AlmacenGORM) EliminarPlan(id int) error {
 	res := a.db.Delete(&models.PlanPago{}, id)
 	if res.Error != nil {
 		return res.Error
@@ -128,7 +128,7 @@ func (a *AlmacenSQLite) EliminarPlan(id int) error {
 	return nil
 }
 
-func (a *AlmacenSQLite) ListarHistorial() ([]models.HistorialSuscripcion, error) {
+func (a *AlmacenGORM) ListarHistorial() ([]models.HistorialSuscripcion, error) {
 	var lista []models.HistorialSuscripcion
 	if err := a.db.Order("id").Find(&lista).Error; err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (a *AlmacenSQLite) ListarHistorial() ([]models.HistorialSuscripcion, error)
 	return lista, nil
 }
 
-func (a *AlmacenSQLite) ObtenerHistorial(id int) (models.HistorialSuscripcion, error) {
+func (a *AlmacenGORM) ObtenerHistorial(id int) (models.HistorialSuscripcion, error) {
 	var h models.HistorialSuscripcion
 	if err := a.db.First(&h, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -147,14 +147,14 @@ func (a *AlmacenSQLite) ObtenerHistorial(id int) (models.HistorialSuscripcion, e
 	return h, nil
 }
 
-func (a *AlmacenSQLite) CrearHistorial(h models.HistorialSuscripcion) (models.HistorialSuscripcion, error) {
+func (a *AlmacenGORM) CrearHistorial(h models.HistorialSuscripcion) (models.HistorialSuscripcion, error) {
 	if err := a.db.Create(&h).Error; err != nil {
 		return models.HistorialSuscripcion{}, err
 	}
 	return h, nil
 }
 
-func (a *AlmacenSQLite) ActualizarHistorial(h models.HistorialSuscripcion) (models.HistorialSuscripcion, error) {
+func (a *AlmacenGORM) ActualizarHistorial(h models.HistorialSuscripcion) (models.HistorialSuscripcion, error) {
 	var actual models.HistorialSuscripcion
 	if err := a.db.First(&actual, h.ID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -173,7 +173,7 @@ func (a *AlmacenSQLite) ActualizarHistorial(h models.HistorialSuscripcion) (mode
 	return actual, nil
 }
 
-func (a *AlmacenSQLite) EliminarHistorial(id int) error {
+func (a *AlmacenGORM) EliminarHistorial(id int) error {
 	res := a.db.Delete(&models.HistorialSuscripcion{}, id)
 	if res.Error != nil {
 		return res.Error

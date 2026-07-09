@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"suscripciones-api/internal/models"
+	"suscripciones-api/internal/models/suscripciones"
 )
 
 type mockAlmacenSuscripcion struct {

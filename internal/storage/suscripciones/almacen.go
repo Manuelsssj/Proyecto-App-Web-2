@@ -1,6 +1,6 @@
 package storage
 
-import "suscripciones-api/internal/models"
+import models "suscripciones-api/internal/models/suscripciones"
 
 // Almacen define las operaciones de persistencia que necesita la aplicación.
 type Almacen interface {
@@ -33,4 +33,4 @@ type UserRepository interface {
 }
 
 var _ Almacen = (*AlmacenMemoria)(nil)
-var _ Almacen = (*AlmacenSQLite)(nil)
+var _ Almacen = (*AlmacenGORM)(nil)

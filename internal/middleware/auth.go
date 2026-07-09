@@ -4,8 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
-
-	"suscripciones-api/internal/service"
+	service "suscripciones-api/internal/service/suscripciones"
 )
 
 type claveContext string

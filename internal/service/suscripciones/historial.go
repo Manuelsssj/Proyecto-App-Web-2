@@ -3,8 +3,8 @@ package service
 import (
 	"time"
 
-	"suscripciones-api/internal/models"
-	"suscripciones-api/internal/storage"
+	"suscripciones-api/internal/models/suscripciones"
+	"suscripciones-api/internal/storage/suscripciones"
 )
 
 // HistorialService contiene la lógica de negocio del historial de suscripciones.
