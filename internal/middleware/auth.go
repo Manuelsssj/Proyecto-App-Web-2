@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	serviceMain "RideUleam/internal/service"
 	service "RideUleam/internal/service/usuarioVehiculo"
 )
 
@@ -30,6 +31,31 @@ func Auth(auth *service.AuthService) func(http.Handler) http.Handler {
 			}
 
 			claims, err := auth.ValidarClaims(partes[1])
+			if err != nil {
+				responderNoAutorizado(w)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), ClaveUsuarioID, claims.UsuarioID)
+			ctx = context.WithValue(ctx, ClaveRol, claims.Rol)
+			siguiente.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// AuthJWT adapta el servicio de autenticación incorporado por el módulo de
+// rutas programadas al contexto que ya utiliza la rama de viajes inmediatos.
+func AuthJWT(auth *serviceMain.AuthService) func(http.Handler) http.Handler {
+	return func(siguiente http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			encabezado := r.Header.Get("Authorization")
+			partes := strings.SplitN(encabezado, " ", 2)
+			if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") {
+				responderNoAutorizado(w)
+				return
+			}
+
+			claims, err := auth.ValidarToken(partes[1])
 			if err != nil {
 				responderNoAutorizado(w)
 				return
