@@ -20,6 +20,8 @@ import (
 	handlersVI "RideUleam/internal/handlers/viajeInmediato"
 	serviceVI "RideUleam/internal/service/viajeInmediato"
 
+	handlersRP "RideUleam/internal/handlers/rutaProgramada"
+
 	handlersUV "RideUleam/internal/handlers/usuarioVehiculo"
 	serviceUV "RideUleam/internal/service/usuarioVehiculo"
 
@@ -67,6 +69,10 @@ func run(cfg config.Config) error {
 		Vehiculos: vehiculoSvc,
 		Auth:      authSvc,
 	})
+
+	// La autenticación pública sigue siendo la del módulo base; ruta programada
+	// reutiliza el JWT común y solo necesita aquí su almacén.
+	servidorRP := handlersRP.NewServer(recursos.AlmacenRP, nil)
 
 	// 4. Router + middleware global.
 	r := chi.NewRouter()
@@ -117,6 +123,33 @@ func run(cfg config.Config) error {
 			r.Put("/vehiculos/{id}", servidorUV.ActualizarVehiculo)
 			r.With(middleware.RequiereRol("admin")).
 				Delete("/vehiculos/{id}", servidorUV.BorrarVehiculo)
+
+			// Rutas programadas
+			r.Get("/rutas-programadas", servidorRP.ListarRutasProgramadas)
+			r.Post("/rutas-programadas", servidorRP.CrearRutaProgramada)
+			r.Get("/rutas-programadas/{id}", servidorRP.ObtenerRutaProgramada)
+			r.Get("/rutas-programadas/{id}/horarios", servidorRP.ListarHorariosDeRutaProgramada)
+			r.Get("/rutas-programadas/{id}/detalle", servidorRP.ObtenerDetalleRutaProgramada)
+			r.Put("/rutas-programadas/{id}", servidorRP.ActualizarRutaProgramada)
+			r.Delete("/rutas-programadas/{id}", servidorRP.BorrarRutaProgramada)
+
+			// Horarios de rutas programadas
+			r.Get("/horarios-ruta", servidorRP.ListarHorariosRuta)
+			r.Post("/horarios-ruta", servidorRP.CrearHorarioRuta)
+			r.Get("/horarios-ruta/{id}", servidorRP.ObtenerHorarioRuta)
+			r.Put("/horarios-ruta/{id}", servidorRP.ActualizarHorarioRuta)
+			r.Delete("/horarios-ruta/{id}", servidorRP.BorrarHorarioRuta)
+
+			// Mantenimientos de vehículos
+			r.Get("/mantenimientos", servidorRP.ListarMantenimientosVehiculo)
+			r.Get("/mantenimientos/{id}", servidorRP.ObtenerMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Post("/mantenimientos", servidorRP.CrearMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Put("/mantenimientos/{id}", servidorRP.ActualizarMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/mantenimientos/{id}", servidorRP.BorrarMantenimientoVehiculo)
+			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidorRP.ListarMantenimientosDeVehiculo)
 		})
 	})
 

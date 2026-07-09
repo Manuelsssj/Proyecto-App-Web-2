@@ -2,7 +2,7 @@ package service
 
 import "errors"
 
-//Lista de errores posibles
+// Lista de errores posibles
 var (
 	ErrViajeIDInvalido               = errors.New("viaje_id es requerido")
 	ErrUsuarioIDInvalido             = errors.New("usuario_id es requerido")

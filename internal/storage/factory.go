@@ -8,14 +8,17 @@ import (
 
 	_ "github.com/glebarez/go-sqlite"
 	"github.com/glebarez/sqlite"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	// MODELOS
+	modelsRP "RideUleam/internal/models/rutaProgramada"
 	modelsUV "RideUleam/internal/models/usuarioVehiculo"
 	modelsVI "RideUleam/internal/models/viajeInmediato"
 
 	// STORAGE DE CADA MÓDULO
+	storageRP "RideUleam/internal/storage/rutaProgramada"
 	storageUV "RideUleam/internal/storage/usuarioVehiculo"
 	storageVI "RideUleam/internal/storage/viajeInmediato"
 )
@@ -27,6 +30,9 @@ type Recursos struct {
 
 	// ViajeInmediato
 	AlmacenVI storageVI.Almacen
+
+	// RutaProgramada
+	AlmacenRP storageRP.Almacen
 
 	BackendUsado string
 
@@ -47,10 +53,15 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 		&modelsVI.ViajeInmediato{},
 		&modelsVI.SolicitudViaje{},
 		&modelsVI.ParticipanteViaje{},
+		&modelsRP.RutaProgramada{},
+		&modelsRP.HorarioRuta{},
+		&modelsRP.MantenimientoVehiculo{},
 	); err != nil {
 		return nil, fmt.Errorf("AutoMigrate: %w", err)
 	}
-
+	if err := sembrarUsuarios(gdb); err != nil {
+		return nil, fmt.Errorf("sembrar usuarios: %w", err)
+	}
 	//-------------------------------------------------
 	// GORM
 	//-------------------------------------------------
@@ -60,6 +71,9 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 
 	almacenVIGorm := storageVI.NuevoAlmacenSQLite(gdb)
 	almacenVIGorm.SembrarSiVacio()
+
+	almacenRPGorm := storageRP.NuevoAlmacenSQLite(gdb)
+	almacenRPGorm.SembrarSiVacio()
 
 	var almacenUV storageUV.Almacen
 	var almacenVI storageVI.Almacen
@@ -107,6 +121,7 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 	return &Recursos{
 		AlmacenUV:    almacenUV,
 		AlmacenVI:    almacenVI,
+		AlmacenRP:    almacenRPGorm,
 		Usuarios:     usuarios,
 		BackendUsado: backendUsado,
 		Cerrar:       cerrar,
@@ -139,4 +154,60 @@ func abrirGorm(driver, dsn, rutaDB string) (*gorm.DB, error) {
 		}
 		return gdb, nil
 	}
+}
+
+// //////////////
+func sembrarUsuarios(db *gorm.DB) error {
+	var cantidad int64
+
+	if err := db.Model(&modelsUV.Usuario{}).Count(&cantidad).Error; err != nil {
+		return err
+	}
+
+	if cantidad > 0 {
+		return nil
+	}
+
+	hash, err := bcrypt.GenerateFromPassword(
+		[]byte("123456"),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return err
+	}
+
+	usuarios := []modelsUV.Usuario{
+		{
+			Email:        "conductor1@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "conductor",
+		},
+		{
+			Email:        "conductor2@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "conductor",
+		},
+		{
+			Email:        "conductor3@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "conductor",
+		},
+		{
+			Email:        "conductor4@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "conductor",
+		},
+		{
+			Email:        "conductor5@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "conductor",
+		},
+		{
+			Email:        "admin@uleam.com",
+			PasswordHash: string(hash),
+			Rol:          "admin",
+		},
+	}
+
+	return db.Create(&usuarios).Error
 }

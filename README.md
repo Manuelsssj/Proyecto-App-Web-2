@@ -1,39 +1,74 @@
 # RideULEAM
 
-RideULEAM es una API REST desarrollada en Go para gestionar viajes compartidos entre estudiantes universitarios. Permite registrar usuarios, iniciar sesion con JWT, administrar vehiculos y coordinar viajes inmediatos con solicitudes y participantes.
+RideULEAM es una API REST para coordinar movilidad compartida dentro de la comunidad universitaria. Permite registrar usuarios, autenticar solicitudes mediante JWT, administrar vehículos, publicar viajes inmediatos y gestionar rutas programadas con horarios y mantenimientos.
 
-## Integrantes y responsables
+## Integrantes y responsabilidades
 
-- Modulo Viajes Inmediatos: gestiona viajes, solicitudes y participantes.
-- Modulo Usuarios y Vehiculos: gestiona registro, login, roles y vehiculos.
-- Infraestructura grupal: Docker, PostgreSQL, CI/CD, middleware JWT y documentacion.
+| Integrante | Módulo principal | Responsabilidades |
+| --- | --- | --- |
+| Manuel Intriago | Rutas programadas | Rutas programadas, horarios, mantenimientos y persistencia GORM del módulo |
+| George Paredes | Viajes inmediatos | Viajes inmediatos, solicitudes, participantes, services y pruebas |
+| José Romero | Usuarios y vehículos | Registro, login, roles, JWT, vehículos e integración de autenticación |
 
-## Stack
+La infraestructura compartida incluye Docker, PostgreSQL, GitHub Actions, middleware, documentación e integración de los módulos.
 
-- Go
+## Stack tecnológico
+
+- Go 1.26.2
 - Chi Router
 - GORM
-- PostgreSQL en Docker
-- SQLite para desarrollo local opcional
-- JWT con roles basicos
+- PostgreSQL mediante Docker
+- SQLite para desarrollo local
+- SQLC como alternativa de persistencia local
+- JWT para autenticación y autorización por roles
 - Testify para pruebas unitarias y mocks
-- GitHub Actions para CI
+- Docker y Docker Compose
+- GitHub Actions para integración continua
 
 ## Arquitectura
 
-El proyecto usa arquitectura por capas:
+El proyecto utiliza arquitectura por capas:
 
 ```text
-HTTP handler -> service -> repository/storage -> database
+Cliente HTTP / Postman
+          |
+          v
+Chi Router + Middleware JWT/CORS
+          |
+          v
+Handler HTTP
+          |
+          v
+Service / reglas de negocio
+          |
+          v
+Repository / Storage interface
+          |
+          v
+GORM o SQLC
+          |
+          v
+PostgreSQL / SQLite
 ```
 
-La inyeccion de dependencias se realiza desde `cmd/rideUleam/main.go`. La inicializacion de base de datos, migraciones y seeders esta en `internal/storage/factory.go`.
+Los handlers reciben y validan solicitudes HTTP. Los services concentran las reglas de negocio. Los repositories definen contratos de persistencia y sus implementaciones trabajan con GORM o SQLC. Las dependencias se construyen e inyectan desde `cmd/rideUleam/main.go`.
 
-## Ejecucion con Docker
+El diagrama ampliado se encuentra en [`docs/arquitectura.md`](docs/arquitectura.md).
+
+## Requisitos
+
+- Docker Desktop con Docker Compose, o
+- Go 1.26.2 para ejecución local
+
+## Ejecución con Docker
+
+Desde la raíz del proyecto:
 
 ```bash
 docker compose up --build
 ```
+
+Este comando construye la API, inicia PostgreSQL, espera a que la base esté disponible, ejecuta las migraciones automáticas y carga los datos iniciales.
 
 La API queda disponible en:
 
@@ -41,21 +76,59 @@ La API queda disponible en:
 http://localhost:8080
 ```
 
-El `docker-compose.yml` levanta:
+Para detener los contenedores:
 
-- API RideULEAM
-- PostgreSQL
-- Seeders internos mediante `SembrarSiVacio()`
+```bash
+docker compose down
+```
 
-## Ejecucion local
+Para detenerlos y eliminar el volumen de la base de datos:
+
+```bash
+docker compose down -v
+```
+
+> `docker compose down -v` elimina todos los datos almacenados en PostgreSQL.
+
+## Ejecución local
+
+1. Copiar la configuración de ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+2. Iniciar la aplicación:
 
 ```bash
 go run ./cmd/rideUleam
 ```
 
-## Autenticacion
+Por defecto, la ejecución local utiliza SQLite y crea el archivo configurado mediante `RUTA_DB`.
 
-Primero registra un usuario y luego inicia sesion. El login devuelve un token JWT.
+## Variables de entorno
+
+| Variable | Descripción | Valor de desarrollo |
+| --- | --- | --- |
+| `PUERTO` | Puerto HTTP de la API | `:8080` |
+| `DB_DRIVER` | Motor de base de datos: `sqlite` o `postgres` | `sqlite` |
+| `DB_DSN` | Cadena de conexión de PostgreSQL | Vacío |
+| `RUTA_DB` | Archivo de SQLite | `rideUleam.db` |
+| `STORAGE` | Backend: `gorm` o `sqlc` | `gorm` |
+| `JWT_SECRETO` | Secreto utilizado para firmar JWT | Solo desarrollo |
+| `JWT_DURACION` | Tiempo de validez del JWT | `24h` |
+| `HTTP_READ_TIMEOUT` | Tiempo máximo de lectura HTTP | `10s` |
+| `HTTP_WRITE_TIMEOUT` | Tiempo máximo de escritura HTTP | `10s` |
+
+En producción deben utilizarse credenciales y secretos diferentes a los valores de ejemplo.
+
+## Autenticación y roles
+
+El registro y el login son públicos. Los demás endpoints requieren un JWT enviado mediante:
+
+```text
+Authorization: Bearer <token>
+```
 
 Roles disponibles:
 
@@ -67,78 +140,166 @@ Ejemplo de registro:
 
 ```json
 {
-  "email": "admin@uleam.edu.ec",
+  "email": "usuario@uleam.edu.ec",
   "password": "secreta123",
-  "rol": "admin"
+  "rol": "pasajero"
 }
 ```
 
-Para rutas protegidas se usa:
+Ejemplo de login:
 
-```text
-Authorization: Bearer <token>
+```json
+{
+  "email": "usuario@uleam.edu.ec",
+  "password": "secreta123"
+}
+```
+
+El login devuelve:
+
+```json
+{
+  "token": "<jwt>"
+}
 ```
 
 ## Endpoints
 
-### Auth
+### Autenticación — responsable: José Romero
 
-| Metodo | Ruta | Descripcion | Responsable |
+| Método | Ruta | Descripción | Acceso |
 | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register` | Registrar usuario con rol | Usuarios y Vehiculos |
-| POST | `/api/v1/auth/login` | Iniciar sesion y obtener JWT | Usuarios y Vehiculos |
+| POST | `/api/v1/auth/register` | Registrar un usuario | Público |
+| POST | `/api/v1/auth/login` | Iniciar sesión y obtener JWT | Público |
 
-### Viajes inmediatos
+### Vehículos — responsable: José Romero
 
-| Metodo | Ruta | Descripcion | Responsable |
+| Método | Ruta | Descripción | Acceso |
 | --- | --- | --- | --- |
-| GET | `/api/v1/viajes-inmediatos` | Listar viajes | Viajes Inmediatos |
-| POST | `/api/v1/viajes-inmediatos` | Crear viaje, requiere rol `admin` o `conductor` | Viajes Inmediatos |
-| GET | `/api/v1/viajes-inmediatos/{id}` | Obtener viaje por ID | Viajes Inmediatos |
-| PUT | `/api/v1/viajes-inmediatos/{id}` | Actualizar viaje | Viajes Inmediatos |
-| DELETE | `/api/v1/viajes-inmediatos/{id}` | Eliminar viaje | Viajes Inmediatos |
+| GET | `/api/v1/vehiculos` | Listar vehículos | JWT |
+| POST | `/api/v1/vehiculos` | Crear vehículo | JWT |
+| GET | `/api/v1/vehiculos/{id}` | Obtener vehículo por ID | JWT |
+| PUT | `/api/v1/vehiculos/{id}` | Actualizar vehículo | JWT |
+| DELETE | `/api/v1/vehiculos/{id}` | Eliminar vehículo | Rol `admin` |
 
-### Solicitudes de viaje
+### Viajes inmediatos — responsable: George Paredes
 
-| Metodo | Ruta | Descripcion | Responsable |
+| Método | Ruta | Descripción | Acceso |
 | --- | --- | --- | --- |
-| GET | `/api/v1/solicitudes-viajes` | Listar solicitudes | Viajes Inmediatos |
-| POST | `/api/v1/solicitudes-viajes` | Crear solicitud | Viajes Inmediatos |
-| GET | `/api/v1/solicitudes-viajes/{id}` | Obtener solicitud por ID | Viajes Inmediatos |
-| PUT | `/api/v1/solicitudes-viajes/{id}` | Actualizar solicitud | Viajes Inmediatos |
-| DELETE | `/api/v1/solicitudes-viajes/{id}` | Eliminar solicitud | Viajes Inmediatos |
+| GET | `/api/v1/viajes-inmediatos` | Listar viajes inmediatos | JWT |
+| POST | `/api/v1/viajes-inmediatos` | Crear viaje inmediato | Rol `admin` o `conductor` |
+| GET | `/api/v1/viajes-inmediatos/{id}` | Obtener viaje por ID | JWT |
+| PUT | `/api/v1/viajes-inmediatos/{id}` | Actualizar viaje | JWT |
+| DELETE | `/api/v1/viajes-inmediatos/{id}` | Eliminar viaje | JWT |
 
-### Participantes de viaje
+### Solicitudes de viaje — responsable: George Paredes
 
-| Metodo | Ruta | Descripcion | Responsable |
+| Método | Ruta | Descripción | Acceso |
 | --- | --- | --- | --- |
-| GET | `/api/v1/participantes-viajes` | Listar participantes | Viajes Inmediatos |
-| POST | `/api/v1/participantes-viajes` | Crear participante | Viajes Inmediatos |
-| GET | `/api/v1/participantes-viajes/{id}` | Obtener participante por ID | Viajes Inmediatos |
-| PUT | `/api/v1/participantes-viajes/{id}` | Actualizar participante | Viajes Inmediatos |
-| DELETE | `/api/v1/participantes-viajes/{id}` | Eliminar participante | Viajes Inmediatos |
+| GET | `/api/v1/solicitudes-viajes` | Listar solicitudes | JWT |
+| POST | `/api/v1/solicitudes-viajes` | Crear solicitud | JWT |
+| GET | `/api/v1/solicitudes-viajes/{id}` | Obtener solicitud por ID | JWT |
+| PUT | `/api/v1/solicitudes-viajes/{id}` | Actualizar solicitud | JWT |
+| DELETE | `/api/v1/solicitudes-viajes/{id}` | Eliminar solicitud | JWT |
 
-### Vehiculos
+### Participantes de viaje — responsable: George Paredes
 
-| Metodo | Ruta | Descripcion | Responsable |
+| Método | Ruta | Descripción | Acceso |
 | --- | --- | --- | --- |
-| GET | `/api/v1/vehiculos` | Listar vehiculos | Usuarios y Vehiculos |
-| POST | `/api/v1/vehiculos` | Crear vehiculo | Usuarios y Vehiculos |
-| GET | `/api/v1/vehiculos/{id}` | Obtener vehiculo por ID | Usuarios y Vehiculos |
-| PUT | `/api/v1/vehiculos/{id}` | Actualizar vehiculo | Usuarios y Vehiculos |
-| DELETE | `/api/v1/vehiculos/{id}` | Eliminar vehiculo, requiere rol `admin` | Usuarios y Vehiculos |
+| GET | `/api/v1/participantes-viajes` | Listar participantes | JWT |
+| POST | `/api/v1/participantes-viajes` | Crear participante | JWT |
+| GET | `/api/v1/participantes-viajes/{id}` | Obtener participante por ID | JWT |
+| PUT | `/api/v1/participantes-viajes/{id}` | Actualizar participante | JWT |
+| DELETE | `/api/v1/participantes-viajes/{id}` | Eliminar participante | JWT |
+
+### Rutas programadas — responsable: Manuel Intriago
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/rutas-programadas` | Listar rutas programadas | JWT |
+| POST | `/api/v1/rutas-programadas` | Crear ruta programada | JWT |
+| GET | `/api/v1/rutas-programadas/{id}` | Obtener ruta por ID | JWT |
+| GET | `/api/v1/rutas-programadas/{id}/horarios` | Listar horarios de una ruta | JWT |
+| GET | `/api/v1/rutas-programadas/{id}/detalle` | Obtener ruta con detalle | JWT |
+| PUT | `/api/v1/rutas-programadas/{id}` | Actualizar ruta | JWT |
+| DELETE | `/api/v1/rutas-programadas/{id}` | Eliminar ruta | JWT |
+
+### Horarios de ruta — responsable: Manuel Intriago
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/horarios-ruta` | Listar horarios | JWT |
+| POST | `/api/v1/horarios-ruta` | Crear horario | JWT |
+| GET | `/api/v1/horarios-ruta/{id}` | Obtener horario por ID | JWT |
+| PUT | `/api/v1/horarios-ruta/{id}` | Actualizar horario | JWT |
+| DELETE | `/api/v1/horarios-ruta/{id}` | Eliminar horario | JWT |
+
+### Mantenimientos — responsable: Manuel Intriago
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/mantenimientos` | Listar mantenimientos | JWT |
+| GET | `/api/v1/mantenimientos/{id}` | Obtener mantenimiento por ID | JWT |
+| POST | `/api/v1/mantenimientos` | Crear mantenimiento | Rol `admin` |
+| PUT | `/api/v1/mantenimientos/{id}` | Actualizar mantenimiento | Rol `admin` |
+| DELETE | `/api/v1/mantenimientos/{id}` | Eliminar mantenimiento | Rol `admin` |
+| GET | `/api/v1/vehiculos/{vehiculoID}/mantenimientos` | Listar mantenimientos de un vehículo | JWT |
 
 ## Pruebas
+
+Ejecutar todas las pruebas:
+
+```bash
+go test ./...
+```
+
+Ejecutar las pruebas mostrando cobertura:
 
 ```bash
 go test ./... -cover
 ```
 
+Ejecutar el análisis estático:
+
+```bash
+go vet ./...
+```
+
+Las pruebas incluyen services con repositories simulados mediante Testify, validaciones, recursos inexistentes e inputs inválidos.
+
 ## CI/CD
 
-El pipeline esta en `.github/workflows/ci.yml` y ejecuta:
+El workflow `.github/workflows/ci.yml` se ejecuta en pushes a `main`, ramas `feature/**` y pull requests hacia `main`.
 
-- `go mod download`
-- `go build ./...`
-- `go vet ./...`
-- `go test ./... -cover`
+El pipeline realiza:
+
+1. Descarga de dependencias.
+2. Compilación con `go build ./...`.
+3. Análisis estático con `go vet ./...`.
+4. Pruebas y cobertura con `go test ./... -cover`.
+
+## Colecciones Postman
+
+Las colecciones exportadas se encuentran en `postman/`:
+
+- `RideULEAM.postman_collection.json`
+- `RideULEAM - Ruta Programada.postman_collection.json`
+
+## Documentación adicional
+
+- [`docs/arquitectura.md`](docs/arquitectura.md): diagrama y explicación de arquitectura.
+- [`docs/cierre.md`](docs/cierre.md): aprendizajes, retrospectiva y próximos pasos.
+
+## Estructura principal
+
+```text
+cmd/rideUleam/       Punto de entrada e inyección de dependencias
+internal/handlers/   Capa HTTP
+internal/service/    Reglas de negocio
+internal/storage/    Interfaces y persistencia
+internal/models/     Entidades y relaciones GORM
+internal/middleware/ JWT, roles y CORS
+db/                  Esquema y consultas SQLC
+docs/                Arquitectura y documento de cierre
+postman/             Colecciones para probar la API
+```

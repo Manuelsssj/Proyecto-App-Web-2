@@ -43,13 +43,12 @@ func Auth(auth *service.AuthService) func(http.Handler) http.Handler {
 	}
 }
 
-// AuthJWT adapta el servicio de autenticación incorporado por el módulo de
-// rutas programadas al contexto que ya utiliza la rama de viajes inmediatos.
+// AuthJWT permite que el módulo de rutas programadas conserve sus pruebas y
+// utilidades de autenticación sin reemplazar el Auth usado por la aplicación.
 func AuthJWT(auth *serviceMain.AuthService) func(http.Handler) http.Handler {
 	return func(siguiente http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			encabezado := r.Header.Get("Authorization")
-			partes := strings.SplitN(encabezado, " ", 2)
+			partes := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 			if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") {
 				responderNoAutorizado(w)
 				return
