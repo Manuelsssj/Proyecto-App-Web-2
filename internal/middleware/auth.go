@@ -5,65 +5,90 @@ import (
 	"net/http"
 	"strings"
 
-	"RideUleam/internal/service"
+	serviceMain "RideUleam/internal/service"
+	service "RideUleam/internal/service/usuarioVehiculo"
 )
 
-type contextKey string
+// claveContexto es un tipo privado para la clave del context y evitar colisiones.
+type claveContexto string
 
-const claimsContextKey contextKey = "claims"
+const ClaveRol claveContexto = "rol"
 
-func AuthJWT(authService *service.AuthService) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
+// ClaveUsuarioID es la clave bajo la que se guarda el ID del usuario autenticado.
+const ClaveUsuarioID claveContexto = "usuarioID"
+
+// Auth construye un middleware que exige un JWT valido en el header
+// Authorization: Bearer <token>. Delega la validacion al AuthService: el
+// middleware NO sabe de firmas ni de claims, solo de HTTP.
+func Auth(auth *service.AuthService) func(http.Handler) http.Handler {
+	return func(siguiente http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := r.Header.Get("Authorization")
-
-			if header == "" {
-				http.Error(w, "Token requerido", http.StatusUnauthorized)
+			encabezado := r.Header.Get("Authorization")
+			partes := strings.SplitN(encabezado, " ", 2)
+			if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") {
+				responderNoAutorizado(w)
 				return
 			}
 
-			partes := strings.Split(header, " ")
-			if len(partes) != 2 || partes[0] != "Bearer" {
-				http.Error(w, "Formato de token inválido", http.StatusUnauthorized)
-				return
-			}
-
-			token := partes[1]
-
-			claims, err := authService.ValidarToken(token)
+			claims, err := auth.ValidarClaims(partes[1])
 			if err != nil {
-				http.Error(w, "Token inválido", http.StatusUnauthorized)
+				responderNoAutorizado(w)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), claimsContextKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			ctx := context.WithValue(r.Context(), ClaveUsuarioID, claims.UsuarioID)
+			ctx = context.WithValue(ctx, ClaveRol, claims.Rol)
+			siguiente.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func ClaimsDesdeContext(ctx context.Context) (*service.Claims, bool) {
-	claims, ok := ctx.Value(claimsContextKey).(*service.Claims)
-	return claims, ok
-}
-
-func RolRequerido(rolesPermitidos ...string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
+// AuthJWT permite que el módulo de rutas programadas conserve sus pruebas y
+// utilidades de autenticación sin reemplazar el Auth usado por la aplicación.
+func AuthJWT(auth *serviceMain.AuthService) func(http.Handler) http.Handler {
+	return func(siguiente http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, ok := ClaimsDesdeContext(r.Context())
-			if !ok {
-				http.Error(w, "Token requerido", http.StatusUnauthorized)
+			partes := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+			if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") {
+				responderNoAutorizado(w)
 				return
 			}
 
-			for _, rol := range rolesPermitidos {
-				if claims.Rol == rol {
-					next.ServeHTTP(w, r)
-					return
-				}
+			claims, err := auth.ValidarToken(partes[1])
+			if err != nil {
+				responderNoAutorizado(w)
+				return
 			}
 
-			http.Error(w, "No tienes permisos para acceder a este recurso", http.StatusForbidden)
+			ctx := context.WithValue(r.Context(), ClaveUsuarioID, claims.UsuarioID)
+			ctx = context.WithValue(ctx, ClaveRol, claims.Rol)
+			siguiente.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func responderNoAutorizado(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte(`{"error":"token ausente o invalido"}`))
+}
+
+func RequiereRol(rolesPermitidos ...string) func(http.Handler) http.Handler {
+	permitidos := map[string]bool{}
+	for _, rol := range rolesPermitidos {
+		permitidos[strings.ToLower(rol)] = true
+	}
+
+	return func(siguiente http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rol, _ := r.Context().Value(ClaveRol).(string)
+			if !permitidos[strings.ToLower(rol)] {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = w.Write([]byte(`{"error":"rol no autorizado"}`))
+				return
+			}
+			siguiente.ServeHTTP(w, r)
 		})
 	}
 }

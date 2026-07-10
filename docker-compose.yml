@@ -1,34 +1,38 @@
+# Orquesta dos servicios: la API (que construimos con el Dockerfile) y una base
+# PostgreSQL. La API espera a que la base este "healthy" antes de arrancar.
 services:
   db:
     image: postgres:16-alpine
-    container_name: rideuleam-db
     environment:
-      POSTGRES_USER: rideuleam
-      POSTGRES_PASSWORD: rideuleam123
-      POSTGRES_DB: rideuleam
+      POSTGRES_USER: rideUleam
+      POSTGRES_PASSWORD: asdf
+      POSTGRES_DB: rideUleam
     ports:
       - "5432:5432"
     volumes:
-      - rideuleam_pgdata:/var/lib/postgresql/data
+      # Volumen nombrado: los datos sobreviven a "docker compose down" (sin -v).
+      - dbdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rideuleam -d rideuleam"]
+      test: ["CMD-SHELL", "pg_isready -U rideUleam -d rideUleam"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 10
 
   api:
     build: .
-    container_name: rideuleam-api
+    environment:
+      PUERTO: ":8080"
+      # En el contenedor usamos PostgreSQL. El host "db" es el nombre del servicio
+      # de arriba: docker compose lo resuelve por DNS interno.
+      DB_DRIVER: postgres
+      DB_DSN: "host=db user=rideUleam password=asdf dbname=rideUleam port=5432 sslmode=disable TimeZone=America/Guayaquil"
+      JWT_SECRETO: "rideuleam-secreto-docker"
+      STORAGE: gorm
+    ports:
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      PUERTO: ":8080"
-      DB_DRIVER: "postgres"
-      DB_DSN: "host=db user=rideuleam password=rideuleam123 dbname=rideuleam port=5432 sslmode=disable"
-      JWT_SECRETO: "rideuleam-secreto-docker"
-    ports:
-      - "8080:8080"
 
 volumes:
-  rideuleam_pgdata:
+  dbdata:

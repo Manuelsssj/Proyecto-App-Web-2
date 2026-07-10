@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
+    branches: [main, feature/**, demo/**]
   pull_request:
+    branches: [main]
 
 jobs:
   verificar:
@@ -10,18 +12,32 @@ jobs:
 
     steps:
       - name: Clonar el repositorio
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Instalar Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Descargar dependencias
+        run: go mod download
 
       - name: Compilar (go build)
         run: go build ./...
 
-      - name: Analizar código (go vet)
+      - name: Analizar codigo (go vet)
         run: go vet ./...
 
       - name: Ejecutar tests (go test)
-        run: go test -v ./...
+        run: go test ./... -cover
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: verificar
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Construir imagen Docker
+        run: docker build -t rideuleam-api:ci .

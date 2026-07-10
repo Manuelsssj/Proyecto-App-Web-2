@@ -1,100 +1,228 @@
+// Command rideUleam arranca el servidor HTTP de la API RideULEAM.
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
-
-	"RideUleam/internal/config"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	handlers "RideUleam/internal/handlers/rutaProgramada"
-	mw "RideUleam/internal/middleware"
-	rutaModels "RideUleam/internal/models/rutaProgramada"
-	usuarioModels "RideUleam/internal/models/usuario"
-	rutaStorage "RideUleam/internal/storage/rutaProgramada"
-	usuarioStorage "RideUleam/internal/storage/usuario"
+	"RideUleam/internal/config"
+	"RideUleam/internal/httpserver"
+	"RideUleam/internal/middleware"
+
+	handlersVI "RideUleam/internal/handlers/viajeInmediato"
+	serviceVI "RideUleam/internal/service/viajeInmediato"
+
+	handlersRP "RideUleam/internal/handlers/rutaProgramada"
+
+	handlersSus "RideUleam/internal/handlers/suscripciones"
+	serviceSus "RideUleam/internal/service/suscripciones"
+
+	handlersUV "RideUleam/internal/handlers/usuarioVehiculo"
+	serviceUV "RideUleam/internal/service/usuarioVehiculo"
+
+	storage "RideUleam/internal/storage"
 )
 
 func main() {
-	// 1. GORM es el dueño del esquema: abre la base, migra y siembra.
 	cfg := config.Cargar()
+	if err := run(cfg); err != nil {
+		log.Fatal(err)
+	}
+}
 
-	gdb, err := rutaStorage.AbrirGorm(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB)
+func run(cfg config.Config) error {
+	// 1. Recursos de almacenamiento (Factory): abre DB (segun el motor elegido
+	//    en la config: sqlite local o postgres en Docker), migra, siembra y elige backend.
+	recursos, err := storage.Inicializar(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB, cfg.Backend)
 	if err != nil {
-		log.Fatal("no se pudo abrir la base de datos: ", err)
+		return err
 	}
+	defer func() { _ = recursos.Cerrar() }()
+	log.Printf("Motor de base de datos: %s | Backend: %s", cfg.DBDriver, recursos.BackendUsado)
+	// 2. Capa de servicio. AuthService recibe secreto y duracion por Options,
+	//    tomados de la configuracion (antes eran globales hardcodeadas).
+	viajesInmediatoSvc := serviceVI.NewViajeInmediatoService(recursos.AlmacenVI)
+	solicitudViajeSvc := serviceVI.NewSolicitudViajeService(recursos.AlmacenVI)
+	participanteViajeSvc := serviceVI.NewParticipanteViajeService(recursos.AlmacenVI)
 
-	if err := gdb.AutoMigrate(
-		&rutaModels.RutaProgramada{},
-		&rutaModels.HorarioRuta{},
-		&rutaModels.MantenimientoVehiculo{},
-		&usuarioModels.Usuario{},
-	); err != nil {
-		log.Fatal("falló AutoMigrate: ", err)
-	}
+	vehiculoSvc := serviceUV.NuevoVehiculoService(recursos.AlmacenUV)
+	authSvc := serviceUV.NuevoAuthService(
+		recursos.Usuarios,
+		serviceUV.WithSecreto(cfg.JWTSecreto),
+		serviceUV.WithDuracionToken(cfg.JWTDuracion),
+	)
 
-	almacenGorm := rutaStorage.NuevoAlmacenSQLite(gdb)
-	almacenGorm.SembrarSiVacio()
-
-	// 2. Repositorio de usuario para Auth.
-	usuarioRepo := usuarioStorage.NewUsuarioGORM(gdb)
-
-	// 3. Server con inyección de dependencias.
-	servidor := handlers.NewServer(almacenGorm, usuarioRepo)
-
-	// 4. Router + middleware.
-	r := chi.NewRouter()
-
-	r.Use(chimw.Logger)
-	r.Use(chimw.Recoverer)
-	r.Use(mw.CORS)
-
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","message":"Servidor funcionando correctamente"}`))
+	// 3. Server con sus dependencias agrupadas en un struct (escala sin crecer
+	//    la firma del constructor).
+	servidorVI := handlersVI.NewServer(handlersVI.Deps{
+		ViajeInmediatos:    viajesInmediatoSvc,
+		SolicitudViajes:    solicitudViajeSvc,
+		ParticipanteViajes: participanteViajeSvc,
 	})
 
+	servidorUV := handlersUV.NewServer(handlersUV.Deps{
+		Vehiculos: vehiculoSvc,
+		Auth:      authSvc,
+	})
+
+	// La autenticación pública sigue siendo la del módulo base; ruta programada
+	// reutiliza el JWT común y solo necesita aquí su almacén.
+	servidorRP := handlersRP.NewServer(recursos.AlmacenRP, nil)
+
+	suscripcionSvc := serviceSus.NewSuscripcionService(recursos.AlmacenSus)
+	planSvc := serviceSus.NewPlanService(recursos.AlmacenSus)
+	historialSvc := serviceSus.NewHistorialService(recursos.AlmacenSus)
+
+	suscripcionH := handlersSus.NewSuscripcionHandler(suscripcionSvc)
+	planH := handlersSus.NewPlanHandler(planSvc)
+	historialH := handlersSus.NewHistorialHandler(historialSvc)
+
+	// 4. Router + middleware global.
+	r := chi.NewRouter()
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(middleware.CORS)
+
+	// 5. Rutas versionadas /api/v1/.
 	r.Route("/api/v1", func(r chi.Router) {
-		// Auth - rutas públicas
-		r.Post("/auth/register", servidor.Registrar)
-		r.Post("/auth/login", servidor.Login)
+		// Publicas: registro y login.
+		r.Post("/auth/register", servidorUV.Registrar)
+		r.Post("/auth/login", servidorUV.Login)
 
-		// Rutas protegidas con JWT
+		// Protegidas: exigen JWT valido en Authorization: Bearer <token>.
 		r.Group(func(r chi.Router) {
-			r.Use(mw.AuthJWT(servidor.Auth))
+			r.Use(middleware.Auth(authSvc))
 
-			// Rutas Programadas
-			r.Get("/rutas-programadas", servidor.ListarRutasProgramadas)
-			r.Post("/rutas-programadas", servidor.CrearRutaProgramada)
-			r.Get("/rutas-programadas/{id}", servidor.ObtenerRutaProgramada)
-			r.Get("/rutas-programadas/{id}/horarios", servidor.ListarHorariosDeRutaProgramada)
-			r.Get("/rutas-programadas/{id}/detalle", servidor.ObtenerDetalleRutaProgramada)
-			r.Put("/rutas-programadas/{id}", servidor.ActualizarRutaProgramada)
-			r.Delete("/rutas-programadas/{id}", servidor.BorrarRutaProgramada)
+			r.Get("/viajes-inmediatos", servidorVI.ListarViajeInmediatos)
+			r.With(middleware.RequiereRol("admin", "conductor")).
+				Post("/viajes-inmediatos", servidorVI.CrearViajeInmediato)
+			r.Get("/viajes-inmediatos/{id}", servidorVI.ObtenerViajeInmediato)
+			r.Put("/viajes-inmediatos/{id}", servidorVI.ActualizarViajeInmediato)
+			r.Delete("/viajes-inmediatos/{id}", servidorVI.BorrarViajeInmediato)
 
-			// Horarios de Ruta
-			r.Get("/horarios-ruta", servidor.ListarHorariosRuta)
-			r.Post("/horarios-ruta", servidor.CrearHorarioRuta)
-			r.Get("/horarios-ruta/{id}", servidor.ObtenerHorarioRuta)
-			r.Put("/horarios-ruta/{id}", servidor.ActualizarHorarioRuta)
-			r.Delete("/horarios-ruta/{id}", servidor.BorrarHorarioRuta)
+			// Solicitudes de Viaje
 
-			// Mantenimientos de Vehículo
-			r.Get("/mantenimientos", servidor.ListarMantenimientosVehiculo)
-			r.Get("/mantenimientos/{id}", servidor.ObtenerMantenimientoVehiculo)
+			r.Get("/solicitudes-viajes", servidorVI.ListarSolicitudViajes)
+			r.Post("/solicitudes-viajes", servidorVI.CrearSolicitudViaje)
+			r.Get("/solicitudes-viajes/{id}", servidorVI.ObtenerSolicitudViaje)
+			r.Put("/solicitudes-viajes/{id}", servidorVI.ActualizarSolicitudViaje)
+			r.Delete("/solicitudes-viajes/{id}", servidorVI.BorrarSolicitudViaje)
 
-			r.With(mw.RolRequerido("admin")).Post("/mantenimientos", servidor.CrearMantenimientoVehiculo)
-			r.With(mw.RolRequerido("admin")).Put("/mantenimientos/{id}", servidor.ActualizarMantenimientoVehiculo)
-			r.With(mw.RolRequerido("admin")).Delete("/mantenimientos/{id}", servidor.BorrarMantenimientoVehiculo)
+			// Participantes de Viaje
 
-			// Mantenimientos por Vehículo
-			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidor.ListarMantenimientosDeVehiculo)
+			r.Get("/participantes-viajes", servidorVI.ListarParticipanteViajes)
+			r.Post("/participantes-viajes", servidorVI.CrearParticipanteViaje)
+			r.Get("/participantes-viajes/{id}", servidorVI.ObtenerParticipanteViaje)
+			r.Put("/participantes-viajes/{id}", servidorVI.ActualizarParticipanteViaje)
+			r.Delete("/participantes-viajes/{id}", servidorVI.BorrarParticipanteViaje)
+
+			// =========================
+			// Usuarios y Vehículos
+			// =========================
+
+			r.Get("/vehiculos", servidorUV.ListarVehiculos)
+			r.Post("/vehiculos", servidorUV.CrearVehiculo)
+			r.Get("/vehiculos/{id}", servidorUV.ObtenerVehiculo)
+			r.Put("/vehiculos/{id}", servidorUV.ActualizarVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/vehiculos/{id}", servidorUV.BorrarVehiculo)
+
+			// Rutas programadas
+			r.Get("/rutas-programadas", servidorRP.ListarRutasProgramadas)
+			r.Post("/rutas-programadas", servidorRP.CrearRutaProgramada)
+			r.Get("/rutas-programadas/{id}", servidorRP.ObtenerRutaProgramada)
+			r.Get("/rutas-programadas/{id}/horarios", servidorRP.ListarHorariosDeRutaProgramada)
+			r.Get("/rutas-programadas/{id}/detalle", servidorRP.ObtenerDetalleRutaProgramada)
+			r.Put("/rutas-programadas/{id}", servidorRP.ActualizarRutaProgramada)
+			r.Delete("/rutas-programadas/{id}", servidorRP.BorrarRutaProgramada)
+
+			// Horarios de rutas programadas
+			r.Get("/horarios-ruta", servidorRP.ListarHorariosRuta)
+			r.Post("/horarios-ruta", servidorRP.CrearHorarioRuta)
+			r.Get("/horarios-ruta/{id}", servidorRP.ObtenerHorarioRuta)
+			r.Put("/horarios-ruta/{id}", servidorRP.ActualizarHorarioRuta)
+			r.Delete("/horarios-ruta/{id}", servidorRP.BorrarHorarioRuta)
+
+			// Mantenimientos de vehículos
+			r.Get("/mantenimientos", servidorRP.ListarMantenimientosVehiculo)
+			r.Get("/mantenimientos/{id}", servidorRP.ObtenerMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Post("/mantenimientos", servidorRP.CrearMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Put("/mantenimientos/{id}", servidorRP.ActualizarMantenimientoVehiculo)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/mantenimientos/{id}", servidorRP.BorrarMantenimientoVehiculo)
+			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidorRP.ListarMantenimientosDeVehiculo)
+
+			// Suscripciones a rutas
+			r.Get("/suscripciones", suscripcionH.Listar)
+			r.Post("/suscripciones", suscripcionH.Crear)
+			r.Get("/suscripciones/{id}", suscripcionH.Obtener)
+			r.Put("/suscripciones/{id}", suscripcionH.Actualizar)
+			r.Delete("/suscripciones/{id}", suscripcionH.Eliminar)
+
+			// Planes de pago
+			r.Get("/planes", planH.Listar)
+			r.With(middleware.RequiereRol("admin")).
+				Post("/planes", planH.Crear)
+			r.Get("/planes/{id}", planH.Obtener)
+			r.With(middleware.RequiereRol("admin")).
+				Put("/planes/{id}", planH.Actualizar)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/planes/{id}", planH.Eliminar)
+
+			// Historial de suscripciones
+			r.Get("/historial-suscripciones", historialH.Listar)
+			r.Post("/historial-suscripciones", historialH.Crear)
+			r.Get("/historial-suscripciones/{id}", historialH.Obtener)
+			r.Put("/historial-suscripciones/{id}", historialH.Actualizar)
+			r.Delete("/historial-suscripciones/{id}", historialH.Eliminar)
 		})
 	})
 
-	log.Println("Servidor escuchando en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	// 6. Servidor HTTP configurado por Options (puerto + timeouts desde config).
+	srv := httpserver.Nuevo(
+		r,
+		httpserver.ConPuerto(cfg.Puerto),
+		httpserver.ConReadTimeout(cfg.ReadTimeout),
+		httpserver.ConWriteTimeout(cfg.WriteTimeout),
+	)
+
+	// 7. Contexto que se cancela al recibir Ctrl+C o SIGTERM.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// 8. Arrancar el servidor en una goroutine para no bloquear la espera de la senal.
+	errServidor := make(chan error, 1)
+	go func() {
+		log.Printf("Servidor escuchando en http://localhost%s", cfg.Puerto)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errServidor <- err
+		}
+	}()
+
+	// 9. Esperar: o el servidor falla, o llega la senal de apagado.
+	select {
+	case err := <-errServidor:
+		return err
+	case <-ctx.Done():
+		log.Println("Senal de apagado recibida, cerrando ordenadamente...")
+	}
+
+	// 10. Graceful shutdown: hasta 10s para terminar las requests en curso.
+	ctxApagado, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelar()
+	if err := srv.Shutdown(ctxApagado); err != nil {
+		return err
+	}
+	log.Println("Servidor detenido limpiamente.")
+	return nil
 }

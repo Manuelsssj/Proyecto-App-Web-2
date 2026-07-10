@@ -1,5 +1,4 @@
 version: "2"
-
 sql:
   - engine: "sqlite"
     schema: "db/schema.sql"
@@ -8,3 +7,5 @@ sql:
       go:
         package: "sqlcdb"
         out: "internal/storage/sqlcdb"
+        emit_json_tags: false
+        emit_prepared_queries: false

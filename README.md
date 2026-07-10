@@ -1,93 +1,80 @@
-# RideULEAM - Módulo Ruta Programada
+﻿# RideULEAM
 
-Este README documenta el módulo **Ruta Programada**, desarrollado por **Manuel Intriago** para el proyecto RideULEAM de la materia **Aplicaciones Web II**.
+RideULEAM es una API REST para coordinar movilidad compartida dentro de la comunidad universitaria. Permite registrar usuarios, autenticar solicitudes mediante JWT, administrar vehÃ­culos, publicar viajes inmediatos y gestionar rutas programadas con horarios y mantenimientos.
 
-El módulo permite gestionar rutas programadas dentro del sistema de transporte universitario RideULEAM. También incluye la gestión de horarios asociados a una ruta y mantenimientos de vehículos, usando autenticación JWT, roles, persistencia con GORM y pruebas automatizadas.
+## Integrantes y responsabilidades
 
----
+| Integrante | MÃ³dulo principal | Responsabilidades |
+| --- | --- | --- |
+| Manuel Intriago | Rutas programadas | Rutas programadas, horarios, mantenimientos y persistencia GORM del mÃ³dulo |
+| George Paredes | Viajes inmediatos | Viajes inmediatos, solicitudes, participantes, services y pruebas |
+| JosÃ© Romero | Usuarios y vehÃ­culos | Registro, login, roles, JWT, vehÃ­culos e integraciÃ³n de autenticaciÃ³n |
+| Rama suscripciones | Suscripciones | Suscripciones a rutas, planes de pago, historial, service, storage y pruebas |
 
-## Responsable del módulo
+La infraestructura compartida incluye Docker, PostgreSQL, GitHub Actions, middleware, documentaciÃ³n e integraciÃ³n de los mÃ³dulos.
 
-| Integrante | Rama | Módulo |
-|---|---|---|
-| Manuel Intriago | `feature/ruta-programada` | Ruta Programada |
+## Stack tecnolÃ³gico
 
----
+- Go 1.26.2
+- Chi Router
+- GORM
+- PostgreSQL mediante Docker
+- SQLite para desarrollo local
+- SQLC como alternativa de persistencia local
+- JWT para autenticaciÃ³n y autorizaciÃ³n por roles
+- Testify para pruebas unitarias y mocks
+- Docker y Docker Compose
+- GitHub Actions para integraciÃ³n continua
 
-## Descripción del módulo
+## Arquitectura
 
-El módulo **Ruta Programada** permite registrar rutas planificadas por un conductor, indicando origen, destino y costo. Además, permite asociar horarios a cada ruta programada y registrar mantenimientos de vehículos.
-
-Las entidades principales trabajadas en este módulo son:
-
-- `RutaProgramada`
-- `HorarioRuta`
-- `MantenimientoVehiculo`
-
----
-
-## Stack utilizado
-
-El módulo fue desarrollado con:
-
-- **Go**
-- **Chi Router**
-- **GORM**
-- **PostgreSQL**
-- **Docker**
-- **Docker Compose**
-- **JWT**
-- **Testify**
-- **GitHub Actions**
-
----
-
-## Arquitectura del módulo
-
-El módulo utiliza arquitectura por capas:
+El proyecto utiliza arquitectura por capas:
 
 ```text
-Handler → Service → Repository/Storage → Base de datos
+Cliente HTTP / Postman
+          |
+          v
+Chi Router + Middleware JWT/CORS
+          |
+          v
+Handler HTTP
+          |
+          v
+Service / reglas de negocio
+          |
+          v
+Repository / Storage interface
+          |
+          v
+GORM o SQLC
+          |
+          v
+PostgreSQL / SQLite
 ```
 
-### Descripción de capas
+Los handlers reciben y validan solicitudes HTTP. Los services concentran las reglas de negocio. Los repositories definen contratos de persistencia y sus implementaciones trabajan con GORM o SQLC. Las dependencias se construyen e inyectan desde `cmd/rideUleam/main.go`.
 
-- **Handler:** recibe las peticiones HTTP, decodifica el JSON y responde al cliente.
-- **Service:** contiene las validaciones y reglas de negocio antes de guardar o consultar datos.
-- **Repository/Storage:** se encarga del acceso a datos usando GORM.
-- **Base de datos:** PostgreSQL ejecutado mediante Docker Compose.
+El diagrama ampliado se encuentra en [`docs/arquitectura.md`](docs/arquitectura.md).
 
-Esta arquitectura permite separar responsabilidades, facilitar las pruebas y mantener el código más ordenado.
+## Requisitos
 
----
+- Docker Desktop con Docker Compose, o
+- Go 1.26.2 para ejecuciÃ³n local
 
-## Ejecución del proyecto
+## EjecuciÃ³n con Docker
 
-Desde la raíz del proyecto, ejecutar:
+Desde la raÃ­z del proyecto:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
-La API estará disponible en:
+Este comando construye la API, inicia PostgreSQL, espera a que la base estÃ© disponible, ejecuta las migraciones automÃ¡ticas y carga los datos iniciales.
+
+La API queda disponible en:
 
 ```text
 http://localhost:8080
-```
-
-Para verificar que el servidor funciona correctamente:
-
-```bash
-curl http://localhost:8080/health
-```
-
-Respuesta esperada:
-
-```json
-{
-  "status": "ok",
-  "message": "Servidor funcionando correctamente"
-}
 ```
 
 Para detener los contenedores:
@@ -96,298 +83,255 @@ Para detener los contenedores:
 docker compose down
 ```
 
----
+Para detenerlos y eliminar el volumen de la base de datos:
 
-## Autenticación JWT
-
-Las rutas del módulo están protegidas con JWT.
-
-Primero se debe registrar o iniciar sesión para obtener un token.
-
-### Registro de administrador
-
-```http
-POST /api/v1/auth/register
+```bash
+docker compose down -v
 ```
 
-Body:
+> `docker compose down -v` elimina todos los datos almacenados en PostgreSQL.
 
-```json
-{
-  "email": "admin@test.com",
-  "password": "123456",
-  "rol": "admin"
-}
+## EjecuciÃ³n local
+
+1. Copiar la configuraciÃ³n de ejemplo:
+
+```bash
+cp .env.example .env
 ```
 
-### Registro de conductor
+2. Iniciar la aplicaciÃ³n:
 
-```http
-POST /api/v1/auth/register
+```bash
+go run ./cmd/rideUleam
 ```
 
-Body:
+Por defecto, la ejecuciÃ³n local utiliza SQLite y crea el archivo configurado mediante `RUTA_DB`.
 
-```json
-{
-  "email": "conductor@test.com",
-  "password": "123456",
-  "rol": "conductor"
-}
-```
+## Variables de entorno
 
-### Login
+| Variable | DescripciÃ³n | Valor de desarrollo |
+| --- | --- | --- |
+| `PUERTO` | Puerto HTTP de la API | `:8080` |
+| `DB_DRIVER` | Motor de base de datos: `sqlite` o `postgres` | `sqlite` |
+| `DB_DSN` | Cadena de conexiÃ³n de PostgreSQL | VacÃ­o |
+| `RUTA_DB` | Archivo de SQLite | `rideUleam.db` |
+| `STORAGE` | Backend: `gorm` o `sqlc` | `gorm` |
+| `JWT_SECRETO` | Secreto utilizado para firmar JWT | Solo desarrollo |
+| `JWT_DURACION` | Tiempo de validez del JWT | `24h` |
+| `HTTP_READ_TIMEOUT` | Tiempo mÃ¡ximo de lectura HTTP | `10s` |
+| `HTTP_WRITE_TIMEOUT` | Tiempo mÃ¡ximo de escritura HTTP | `10s` |
 
-```http
-POST /api/v1/auth/login
-```
+En producciÃ³n deben utilizarse credenciales y secretos diferentes a los valores de ejemplo.
 
-Body:
+## AutenticaciÃ³n y roles
 
-```json
-{
-  "email": "admin@test.com",
-  "password": "123456"
-}
-```
-
-La respuesta devuelve un token JWT.  
-Ese token debe enviarse en las rutas protegidas usando el header:
-
-```http
-Authorization: Bearer TOKEN
-```
-
----
-
-# Endpoints del módulo Ruta Programada
-
-## Health Check
-
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/health` | Verifica que el servidor esté funcionando |
-
----
-
-## Rutas Programadas
-
-| Método | Endpoint | Descripción | Protección |
-|---|---|---|---|
-| GET | `/api/v1/rutas-programadas` | Lista todas las rutas programadas | Requiere token |
-| POST | `/api/v1/rutas-programadas` | Crea una ruta programada | Requiere token |
-| GET | `/api/v1/rutas-programadas/{id}` | Obtiene una ruta programada por ID | Requiere token |
-| GET | `/api/v1/rutas-programadas/{id}/detalle` | Obtiene el detalle de una ruta programada | Requiere token |
-| GET | `/api/v1/rutas-programadas/{id}/horarios` | Lista los horarios asociados a una ruta | Requiere token |
-| PUT | `/api/v1/rutas-programadas/{id}` | Actualiza una ruta programada | Requiere token |
-| DELETE | `/api/v1/rutas-programadas/{id}` | Elimina una ruta programada | Requiere token |
-
-### Crear ruta programada
-
-```http
-POST /api/v1/rutas-programadas
-```
-
-Body:
-
-```json
-{
-  "conductor_id": 1,
-  "origen": "Los Esteros",
-  "destino": "ULEAM",
-  "costo": 0.75
-}
-```
-
-Respuesta esperada:
-
-```json
-{
-  "id": 1,
-  "conductor_id": 1,
-  "origen": "Los Esteros",
-  "destino": "ULEAM",
-  "costo": 0.75
-}
-```
-
----
-
-## Horarios de Ruta
-
-| Método | Endpoint | Descripción | Protección |
-|---|---|---|---|
-| GET | `/api/v1/horarios-ruta` | Lista todos los horarios de ruta | Requiere token |
-| POST | `/api/v1/horarios-ruta` | Crea un horario de ruta | Requiere token |
-| GET | `/api/v1/horarios-ruta/{id}` | Obtiene un horario por ID | Requiere token |
-| PUT | `/api/v1/horarios-ruta/{id}` | Actualiza un horario | Requiere token |
-| DELETE | `/api/v1/horarios-ruta/{id}` | Elimina un horario | Requiere token |
-
-### Crear horario de ruta
-
-```http
-POST /api/v1/horarios-ruta
-```
-
-Body:
-
-```json
-{
-  "ruta_id": 1,
-  "dia": "Lunes",
-  "hora": "07:00"
-}
-```
-
-Nota: antes de crear un horario debe existir una ruta programada con el ID indicado en `ruta_id`.
-
----
-
-## Mantenimientos de Vehículo
-
-| Método | Endpoint | Descripción | Protección |
-|---|---|---|---|
-| GET | `/api/v1/mantenimientos` | Lista todos los mantenimientos | Requiere token |
-| POST | `/api/v1/mantenimientos` | Crea un mantenimiento de vehículo | Solo admin |
-| GET | `/api/v1/mantenimientos/{id}` | Obtiene un mantenimiento por ID | Requiere token |
-| PUT | `/api/v1/mantenimientos/{id}` | Actualiza un mantenimiento | Solo admin |
-| DELETE | `/api/v1/mantenimientos/{id}` | Elimina un mantenimiento | Solo admin |
-| GET | `/api/v1/vehiculos/{vehiculoID}/mantenimientos` | Lista mantenimientos por vehículo | Requiere token |
-
-### Crear mantenimiento
-
-```http
-POST /api/v1/mantenimientos
-```
-
-Body:
-
-```json
-{
-  "vehiculo_id": 1,
-  "motivo": "Cambio de aceite",
-  "fecha_inicio": "2026-07-08",
-  "fecha_fin": "2026-07-10"
-}
-```
-
-Este endpoint requiere rol `admin`.
-
----
-
-## Pruebas con Postman
-
-La colección de Postman del módulo se encuentra en:
+El registro y el login son pÃºblicos. Los demÃ¡s endpoints requieren un JWT enviado mediante:
 
 ```text
-postman/
+Authorization: Bearer <token>
 ```
 
-La colección incluye pruebas para:
+Roles disponibles:
 
-- Health Check
-- Registro y login
-- CRUD de rutas programadas
-- CRUD de horarios de ruta
-- CRUD de mantenimientos
-- Prueba de rutas protegidas con JWT
-- Prueba de permisos por rol admin/conductor
+- `pasajero`
+- `conductor`
+- `admin`
 
----
+Ejemplo de registro:
 
-## Pruebas unitarias
+```json
+{
+  "email": "usuario@uleam.edu.ec",
+  "password": "secreta123",
+  "rol": "pasajero"
+}
+```
 
-Ejecutar todos los tests del proyecto:
+Ejemplo de login:
+
+```json
+{
+  "email": "usuario@uleam.edu.ec",
+  "password": "secreta123"
+}
+```
+
+El login devuelve:
+
+```json
+{
+  "token": "<jwt>"
+}
+```
+
+## Endpoints
+
+### AutenticaciÃ³n â€” responsable: JosÃ© Romero
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/register` | Registrar un usuario | PÃºblico |
+| POST | `/api/v1/auth/login` | Iniciar sesiÃ³n y obtener JWT | PÃºblico |
+
+### VehÃ­culos â€” responsable: JosÃ© Romero
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/vehiculos` | Listar vehÃ­culos | JWT |
+| POST | `/api/v1/vehiculos` | Crear vehÃ­culo | JWT |
+| GET | `/api/v1/vehiculos/{id}` | Obtener vehÃ­culo por ID | JWT |
+| PUT | `/api/v1/vehiculos/{id}` | Actualizar vehÃ­culo | JWT |
+| DELETE | `/api/v1/vehiculos/{id}` | Eliminar vehÃ­culo | Rol `admin` |
+
+### Viajes inmediatos â€” responsable: George Paredes
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/viajes-inmediatos` | Listar viajes inmediatos | JWT |
+| POST | `/api/v1/viajes-inmediatos` | Crear viaje inmediato | Rol `admin` o `conductor` |
+| GET | `/api/v1/viajes-inmediatos/{id}` | Obtener viaje por ID | JWT |
+| PUT | `/api/v1/viajes-inmediatos/{id}` | Actualizar viaje | JWT |
+| DELETE | `/api/v1/viajes-inmediatos/{id}` | Eliminar viaje | JWT |
+
+### Solicitudes de viaje â€” responsable: George Paredes
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/solicitudes-viajes` | Listar solicitudes | JWT |
+| POST | `/api/v1/solicitudes-viajes` | Crear solicitud | JWT |
+| GET | `/api/v1/solicitudes-viajes/{id}` | Obtener solicitud por ID | JWT |
+| PUT | `/api/v1/solicitudes-viajes/{id}` | Actualizar solicitud | JWT |
+| DELETE | `/api/v1/solicitudes-viajes/{id}` | Eliminar solicitud | JWT |
+
+### Participantes de viaje â€” responsable: George Paredes
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/participantes-viajes` | Listar participantes | JWT |
+| POST | `/api/v1/participantes-viajes` | Crear participante | JWT |
+| GET | `/api/v1/participantes-viajes/{id}` | Obtener participante por ID | JWT |
+| PUT | `/api/v1/participantes-viajes/{id}` | Actualizar participante | JWT |
+| DELETE | `/api/v1/participantes-viajes/{id}` | Eliminar participante | JWT |
+
+### Rutas programadas â€” responsable: Manuel Intriago
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/rutas-programadas` | Listar rutas programadas | JWT |
+| POST | `/api/v1/rutas-programadas` | Crear ruta programada | JWT |
+| GET | `/api/v1/rutas-programadas/{id}` | Obtener ruta por ID | JWT |
+| GET | `/api/v1/rutas-programadas/{id}/horarios` | Listar horarios de una ruta | JWT |
+| GET | `/api/v1/rutas-programadas/{id}/detalle` | Obtener ruta con detalle | JWT |
+| PUT | `/api/v1/rutas-programadas/{id}` | Actualizar ruta | JWT |
+| DELETE | `/api/v1/rutas-programadas/{id}` | Eliminar ruta | JWT |
+
+### Horarios de ruta â€” responsable: Manuel Intriago
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/horarios-ruta` | Listar horarios | JWT |
+| POST | `/api/v1/horarios-ruta` | Crear horario | JWT |
+| GET | `/api/v1/horarios-ruta/{id}` | Obtener horario por ID | JWT |
+| PUT | `/api/v1/horarios-ruta/{id}` | Actualizar horario | JWT |
+| DELETE | `/api/v1/horarios-ruta/{id}` | Eliminar horario | JWT |
+
+### Mantenimientos â€” responsable: Manuel Intriago
+
+| MÃ©todo | Ruta | DescripciÃ³n | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/mantenimientos` | Listar mantenimientos | JWT |
+| GET | `/api/v1/mantenimientos/{id}` | Obtener mantenimiento por ID | JWT |
+| POST | `/api/v1/mantenimientos` | Crear mantenimiento | Rol `admin` |
+| PUT | `/api/v1/mantenimientos/{id}` | Actualizar mantenimiento | Rol `admin` |
+| DELETE | `/api/v1/mantenimientos/{id}` | Eliminar mantenimiento | Rol `admin` |
+| GET | `/api/v1/vehiculos/{vehiculoID}/mantenimientos` | Listar mantenimientos de un vehÃ­culo | JWT |
+
+### Suscripciones - responsable: rama suscripciones
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/suscripciones` | Listar suscripciones | JWT |
+| POST | `/api/v1/suscripciones` | Crear suscripción a una ruta | JWT |
+| GET | `/api/v1/suscripciones/{id}` | Obtener suscripción por ID | JWT |
+| PUT | `/api/v1/suscripciones/{id}` | Actualizar suscripción | JWT |
+| DELETE | `/api/v1/suscripciones/{id}` | Eliminar suscripción | JWT |
+
+### Planes de pago - responsable: rama suscripciones
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/planes` | Listar planes de pago | JWT |
+| POST | `/api/v1/planes` | Crear plan de pago | Rol `admin` |
+| GET | `/api/v1/planes/{id}` | Obtener plan por ID | JWT |
+| PUT | `/api/v1/planes/{id}` | Actualizar plan | Rol `admin` |
+| DELETE | `/api/v1/planes/{id}` | Eliminar plan | Rol `admin` |
+
+### Historial de suscripciones - responsable: rama suscripciones
+
+| Método | Ruta | Descripción | Acceso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/historial-suscripciones` | Listar historial | JWT |
+| POST | `/api/v1/historial-suscripciones` | Crear registro de historial | JWT |
+| GET | `/api/v1/historial-suscripciones/{id}` | Obtener registro por ID | JWT |
+| PUT | `/api/v1/historial-suscripciones/{id}` | Actualizar registro | JWT |
+| DELETE | `/api/v1/historial-suscripciones/{id}` | Eliminar registro | JWT |
+
+## Pruebas
+
+Ejecutar todas las pruebas:
 
 ```bash
 go test ./...
 ```
 
-Ejecutar revisión estática:
+Ejecutar las pruebas mostrando cobertura:
+
+```bash
+go test ./... -cover
+```
+
+Ejecutar el anÃ¡lisis estÃ¡tico:
 
 ```bash
 go vet ./...
 ```
 
-Ejecutar cobertura del service del módulo Ruta Programada:
-
-```bash
-go test ./internal/service/rutaProgramada -cover
-```
-
-Cobertura obtenida:
-
-```text
-56.0% of statements
-```
-
----
-
-## Tests del módulo
-
-Para este módulo se realizaron pruebas en las capas principales de la entidad `RutaProgramada`:
-
-```text
-Handler → Service → Storage/Repository
-```
-
-En el service se usaron mocks con `testify` para simular el repository sin depender directamente de la base de datos real.
-
-Casos probados:
-
-- Crear una ruta programada válida.
-- Rechazar una ruta con costo negativo.
-- Obtener una ruta existente.
-- Manejar una ruta inexistente.
-- Actualizar una ruta programada.
-- Borrar una ruta programada.
-- Validar horarios y mantenimientos.
-- Probar acceso con token JWT.
-- Probar permisos por rol.
-
----
+Las pruebas incluyen services con repositories simulados mediante Testify, validaciones, recursos inexistentes e inputs invÃ¡lidos.
 
 ## CI/CD
 
-El proyecto utiliza GitHub Actions para validar automáticamente:
+El workflow `.github/workflows/ci.yml` se ejecuta en pushes a `main`, ramas `feature/**` y pull requests hacia `main`.
+
+El pipeline realiza:
+
+1. Descarga de dependencias.
+2. CompilaciÃ³n con `go build ./...`.
+3. AnÃ¡lisis estÃ¡tico con `go vet ./...`.
+4. Pruebas y cobertura con `go test ./... -cover`.
+
+## Colecciones Postman
+
+Las colecciones exportadas se encuentran en `postman/`:
+
+- `RideULEAM.postman_collection.json`
+- `RideULEAM - Ruta Programada.postman_collection.json`
+
+## DocumentaciÃ³n adicional
+
+- [`docs/arquitectura.md`](docs/arquitectura.md): diagrama y explicaciÃ³n de arquitectura.
+- [`docs/cierre.md`](docs/cierre.md): aprendizajes, retrospectiva y prÃ³ximos pasos.
+
+## Estructura principal
 
 ```text
-build → vet → test
+cmd/rideUleam/       Punto de entrada e inyecciÃ³n de dependencias
+internal/handlers/   Capa HTTP
+internal/service/    Reglas de negocio
+internal/storage/    Interfaces y persistencia
+internal/models/     Entidades y relaciones GORM
+internal/middleware/ JWT, roles y CORS
+db/                  Esquema y consultas SQLC
+docs/                Arquitectura y documento de cierre
+postman/             Colecciones para probar la API
 ```
 
-El pipeline debe estar en verde antes de integrar cambios a `main`.
-
----
-
-## Docker
-
-El proyecto cuenta con:
-
-- Dockerfile multi-stage.
-- docker-compose.yml.
-- Servicio de API.
-- Servicio de PostgreSQL.
-
-Comando principal:
-
-```bash
-docker compose up
-```
-
----
-
-## Estado del módulo
-
-El módulo Ruta Programada cuenta con:
-
-- Arquitectura por capas.
-- Interfaces e inyección de dependencias.
-- Persistencia con GORM.
-- Relaciones entre `RutaProgramada` y `HorarioRuta`.
-- Migraciones automáticas.
-- Endpoints protegidos con JWT.
-- Control de roles para mantenimientos.
-- Tests unitarios.
-- Mocks con Testify.
-- Cobertura del service mayor al 50%.
-- Pruebas en Postman.

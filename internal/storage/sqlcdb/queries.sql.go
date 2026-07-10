@@ -9,267 +9,448 @@ import (
 	"context"
 )
 
-const actualizarHorarioRuta = `-- name: ActualizarHorarioRuta :one
-UPDATE horarios_ruta
-SET ruta_id = ?, dia = ?, hora = ?
-WHERE id = ?
-RETURNING id, ruta_id, dia, hora
+const actualizarParticipanteViaje = `-- name: ActualizarParticipanteViaje :one
+;
+
+UPDATE participante_viajes
+SET viaje_id=?, usuario_id=?
+WHERE id=?
+RETURNING id, viaje_id, usuario_i
 `
 
-type ActualizarHorarioRutaParams struct {
-	RutaID int64
-	Dia    string
-	Hora   string
-	ID     int64
+type ActualizarParticipanteViajeParams struct {
+	ViajeID   int64
+	UsuarioID int64
+	ID        int64
 }
 
-func (q *Queries) ActualizarHorarioRuta(ctx context.Context, arg ActualizarHorarioRutaParams) (HorariosRutum, error) {
-	row := q.db.QueryRowContext(ctx, actualizarHorarioRuta,
-		arg.RutaID,
-		arg.Dia,
-		arg.Hora,
+func (q *Queries) ActualizarParticipanteViaje(ctx context.Context, arg ActualizarParticipanteViajeParams) (ParticipanteViaje, error) {
+	row := q.db.QueryRowContext(ctx, actualizarParticipanteViaje, arg.ViajeID, arg.UsuarioID, arg.ID)
+	var i ParticipanteViaje
+	err := row.Scan(&i.ID, &i.ViajeID, &i.UsuarioID)
+	return i, err
+}
+
+const actualizarSolicitudViaje = `-- name: ActualizarSolicitudViaje :one
+;
+
+UPDATE solicitud_viajes
+SET viaje_id=?, pasajero_id=?, estado=?
+WHERE id=?
+RETURNING id, viaje_id, pasajero_id, estad
+`
+
+type ActualizarSolicitudViajeParams struct {
+	ViajeID    int64
+	PasajeroID int64
+	Estado     string
+	ID         int64
+}
+
+func (q *Queries) ActualizarSolicitudViaje(ctx context.Context, arg ActualizarSolicitudViajeParams) (SolicitudViaje, error) {
+	row := q.db.QueryRowContext(ctx, actualizarSolicitudViaje,
+		arg.ViajeID,
+		arg.PasajeroID,
+		arg.Estado,
 		arg.ID,
 	)
-	var i HorariosRutum
+	var i SolicitudViaje
 	err := row.Scan(
 		&i.ID,
-		&i.RutaID,
-		&i.Dia,
-		&i.Hora,
+		&i.ViajeID,
+		&i.PasajeroID,
+		&i.Estado,
 	)
 	return i, err
 }
 
-const actualizarMantenimientoVehiculo = `-- name: ActualizarMantenimientoVehiculo :one
-UPDATE mantenimientos_vehiculo
-SET vehiculo_id = ?, fecha_inicio = ?, fecha_fin = ?, motivo = ?
-WHERE id = ?
-RETURNING id, vehiculo_id, fecha_inicio, fecha_fin, motivo
+const actualizarVehiculo = `-- name: ActualizarVehiculo :one
+d;
+
+UPDATE vehiculos
+SET conductor_id=?, placa=?, marca=?, modelo=?, capacidad=?
+WHERE id=?
+RETURNING id, conductor_id, placa, marca, modelo, capacid
 `
 
-type ActualizarMantenimientoVehiculoParams struct {
-	VehiculoID  int64
-	FechaInicio string
-	FechaFin    string
-	Motivo      string
+type ActualizarVehiculoParams struct {
+	ConductorID int64
+	Placa       string
+	Marca       string
+	Modelo      string
+	Capacidad   int64
 	ID          int64
 }
 
-func (q *Queries) ActualizarMantenimientoVehiculo(ctx context.Context, arg ActualizarMantenimientoVehiculoParams) (MantenimientosVehiculo, error) {
-	row := q.db.QueryRowContext(ctx, actualizarMantenimientoVehiculo,
-		arg.VehiculoID,
-		arg.FechaInicio,
-		arg.FechaFin,
-		arg.Motivo,
+func (q *Queries) ActualizarVehiculo(ctx context.Context, arg ActualizarVehiculoParams) (Vehiculo, error) {
+	row := q.db.QueryRowContext(ctx, actualizarVehiculo,
+		arg.ConductorID,
+		arg.Placa,
+		arg.Marca,
+		arg.Modelo,
+		arg.Capacidad,
 		arg.ID,
 	)
-	var i MantenimientosVehiculo
+	var i Vehiculo
 	err := row.Scan(
 		&i.ID,
-		&i.VehiculoID,
-		&i.FechaInicio,
-		&i.FechaFin,
-		&i.Motivo,
+		&i.ConductorID,
+		&i.Placa,
+		&i.Marca,
+		&i.Modelo,
+		&i.Capacidad,
 	)
 	return i, err
 }
 
-const actualizarRutaProgramada = `-- name: ActualizarRutaProgramada :one
-UPDATE rutas_programadas
-SET conductor_id = ?, origen = ?, destino = ?, costo = ?
-WHERE id = ?
-RETURNING id, conductor_id, origen, destino, costo
+const actualizarViajeInmediato = `-- name: ActualizarViajeInmediato :one
+;
+
+UPDATE viaje_inmediatos
+SET conductor_id=?, origen=?, destino=?, hora_salida=?, cupos=?, estado=?
+WHERE id=?
+RETURNING id, conductor_id, origen, destino, hora_salida, cupos, estad
 `
 
-type ActualizarRutaProgramadaParams struct {
+type ActualizarViajeInmediatoParams struct {
 	ConductorID int64
 	Origen      string
 	Destino     string
-	Costo       float64
+	HoraSalida  string
+	Cupos       int64
+	Estado      string
 	ID          int64
 }
 
-func (q *Queries) ActualizarRutaProgramada(ctx context.Context, arg ActualizarRutaProgramadaParams) (RutasProgramada, error) {
-	row := q.db.QueryRowContext(ctx, actualizarRutaProgramada,
+func (q *Queries) ActualizarViajeInmediato(ctx context.Context, arg ActualizarViajeInmediatoParams) (ViajeInmediato, error) {
+	row := q.db.QueryRowContext(ctx, actualizarViajeInmediato,
 		arg.ConductorID,
 		arg.Origen,
 		arg.Destino,
-		arg.Costo,
+		arg.HoraSalida,
+		arg.Cupos,
+		arg.Estado,
 		arg.ID,
 	)
-	var i RutasProgramada
+	var i ViajeInmediato
 	err := row.Scan(
 		&i.ID,
 		&i.ConductorID,
 		&i.Origen,
 		&i.Destino,
-		&i.Costo,
+		&i.HoraSalida,
+		&i.Cupos,
+		&i.Estado,
 	)
 	return i, err
 }
 
-const borrarHorarioRuta = `-- name: BorrarHorarioRuta :exec
-DELETE FROM horarios_ruta
-WHERE id = ?
+const borrarParticipanteViaje = `-- name: BorrarParticipanteViaje :execrows
+;
+
+DELETE FROM participante_viajes WHERE id=
 `
 
-func (q *Queries) BorrarHorarioRuta(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, borrarHorarioRuta, id)
-	return err
+func (q *Queries) BorrarParticipanteViaje(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarParticipanteViaje, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const borrarMantenimientoVehiculo = `-- name: BorrarMantenimientoVehiculo :exec
-DELETE FROM mantenimientos_vehiculo
-WHERE id = ?
+const borrarSolicitudViaje = `-- name: BorrarSolicitudViaje :execrows
+;
+
+DELETE FROM solicitud_viajes WHERE id=
 `
 
-func (q *Queries) BorrarMantenimientoVehiculo(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, borrarMantenimientoVehiculo, id)
-	return err
+func (q *Queries) BorrarSolicitudViaje(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarSolicitudViaje, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const borrarRutaProgramada = `-- name: BorrarRutaProgramada :exec
-DELETE FROM rutas_programadas
-WHERE id = ?
+const borrarVehiculo = `-- name: BorrarVehiculo :execrows
+d;
+
+DELETE FROM vehiculos WHERE id
 `
 
-func (q *Queries) BorrarRutaProgramada(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, borrarRutaProgramada, id)
-	return err
+func (q *Queries) BorrarVehiculo(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarVehiculo, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const crearHorarioRuta = `-- name: CrearHorarioRuta :one
-INSERT INTO horarios_ruta (ruta_id, dia, hora)
-VALUES (?, ?, ?)
-RETURNING id, ruta_id, dia, hora
+const borrarViajeInmediato = `-- name: BorrarViajeInmediato :execrows
+;
+
+DELETE FROM viaje_inmediatos WHERE id=
 `
 
-type CrearHorarioRutaParams struct {
-	RutaID int64
-	Dia    string
-	Hora   string
+func (q *Queries) BorrarViajeInmediato(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarViajeInmediato, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-func (q *Queries) CrearHorarioRuta(ctx context.Context, arg CrearHorarioRutaParams) (HorariosRutum, error) {
-	row := q.db.QueryRowContext(ctx, crearHorarioRuta, arg.RutaID, arg.Dia, arg.Hora)
-	var i HorariosRutum
+const buscarParticipanteViajePorID = `-- name: BuscarParticipanteViajePorID :one
+;
+
+SELECT id, viaje_id, usuario_id FROM participante_viajes
+WHERE id=
+`
+
+func (q *Queries) BuscarParticipanteViajePorID(ctx context.Context, id int64) (ParticipanteViaje, error) {
+	row := q.db.QueryRowContext(ctx, buscarParticipanteViajePorID, id)
+	var i ParticipanteViaje
+	err := row.Scan(&i.ID, &i.ViajeID, &i.UsuarioID)
+	return i, err
+}
+
+const buscarSolicitudViajePorID = `-- name: BuscarSolicitudViajePorID :one
+;
+
+SELECT id, viaje_id, pasajero_id, estado FROM solicitud_viajes
+WHERE id=
+`
+
+func (q *Queries) BuscarSolicitudViajePorID(ctx context.Context, id int64) (SolicitudViaje, error) {
+	row := q.db.QueryRowContext(ctx, buscarSolicitudViajePorID, id)
+	var i SolicitudViaje
 	err := row.Scan(
 		&i.ID,
-		&i.RutaID,
-		&i.Dia,
-		&i.Hora,
+		&i.ViajeID,
+		&i.PasajeroID,
+		&i.Estado,
 	)
 	return i, err
 }
 
-const crearMantenimientoVehiculo = `-- name: CrearMantenimientoVehiculo :one
-INSERT INTO mantenimientos_vehiculo (vehiculo_id, fecha_inicio, fecha_fin, motivo)
-VALUES (?, ?, ?, ?)
-RETURNING id, vehiculo_id, fecha_inicio, fecha_fin, motivo
+const buscarVehiculoPorID = `-- name: BuscarVehiculoPorID :one
+s;
+
+SELECT id, conductor_id, placa, marca, modelo, capacidad FROM vehiculos
+WHERE id
 `
 
-type CrearMantenimientoVehiculoParams struct {
-	VehiculoID  int64
-	FechaInicio string
-	FechaFin    string
-	Motivo      string
-}
-
-func (q *Queries) CrearMantenimientoVehiculo(ctx context.Context, arg CrearMantenimientoVehiculoParams) (MantenimientosVehiculo, error) {
-	row := q.db.QueryRowContext(ctx, crearMantenimientoVehiculo,
-		arg.VehiculoID,
-		arg.FechaInicio,
-		arg.FechaFin,
-		arg.Motivo,
-	)
-	var i MantenimientosVehiculo
+func (q *Queries) BuscarVehiculoPorID(ctx context.Context, id int64) (Vehiculo, error) {
+	row := q.db.QueryRowContext(ctx, buscarVehiculoPorID, id)
+	var i Vehiculo
 	err := row.Scan(
 		&i.ID,
-		&i.VehiculoID,
-		&i.FechaInicio,
-		&i.FechaFin,
-		&i.Motivo,
+		&i.ConductorID,
+		&i.Placa,
+		&i.Marca,
+		&i.Modelo,
+		&i.Capacidad,
 	)
 	return i, err
 }
 
-const crearRutaProgramada = `-- name: CrearRutaProgramada :one
-INSERT INTO rutas_programadas (conductor_id, origen, destino, costo)
-VALUES (?, ?, ?, ?)
-RETURNING id, conductor_id, origen, destino, costo
+const buscarViajeInmediatoPorID = `-- name: BuscarViajeInmediatoPorID :one
+;
+
+SELECT id,conductor_id,origen,destino, hora_salida, cupos, estado FROM viaje_inmediatos
+WHERE id =
 `
 
-type CrearRutaProgramadaParams struct {
-	ConductorID int64
-	Origen      string
-	Destino     string
-	Costo       float64
-}
-
-func (q *Queries) CrearRutaProgramada(ctx context.Context, arg CrearRutaProgramadaParams) (RutasProgramada, error) {
-	row := q.db.QueryRowContext(ctx, crearRutaProgramada,
-		arg.ConductorID,
-		arg.Origen,
-		arg.Destino,
-		arg.Costo,
-	)
-	var i RutasProgramada
+func (q *Queries) BuscarViajeInmediatoPorID(ctx context.Context, id int64) (ViajeInmediato, error) {
+	row := q.db.QueryRowContext(ctx, buscarViajeInmediatoPorID, id)
+	var i ViajeInmediato
 	err := row.Scan(
 		&i.ID,
 		&i.ConductorID,
 		&i.Origen,
 		&i.Destino,
-		&i.Costo,
+		&i.HoraSalida,
+		&i.Cupos,
+		&i.Estado,
 	)
 	return i, err
 }
 
-const crearUsuario = `-- name: CrearUsuario :one
+const crearParticipanteViaje = `-- name: CrearParticipanteViaje :one
+;
 
-INSERT INTO usuarios (nombre, correo, password)
-VALUES (?, ?, ?)
-RETURNING id, nombre, correo, password
+INSERT INTO participante_viajes (viaje_id, usuario_id)
+VALUES (?, ?)
+RETURNING id, viaje_id, usuario_i
 `
 
-type CrearUsuarioParams struct {
-	Nombre   string
-	Correo   string
-	Password string
+type CrearParticipanteViajeParams struct {
+	ViajeID   int64
+	UsuarioID int64
 }
 
-// USUARIOS / AUTH
-func (q *Queries) CrearUsuario(ctx context.Context, arg CrearUsuarioParams) (Usuario, error) {
-	row := q.db.QueryRowContext(ctx, crearUsuario, arg.Nombre, arg.Correo, arg.Password)
-	var i Usuario
+func (q *Queries) CrearParticipanteViaje(ctx context.Context, arg CrearParticipanteViajeParams) (ParticipanteViaje, error) {
+	row := q.db.QueryRowContext(ctx, crearParticipanteViaje, arg.ViajeID, arg.UsuarioID)
+	var i ParticipanteViaje
+	err := row.Scan(&i.ID, &i.ViajeID, &i.UsuarioID)
+	return i, err
+}
+
+const crearSolicitudViaje = `-- name: CrearSolicitudViaje :one
+;
+
+INSERT INTO solicitud_viajes (viaje_id, pasajero_id, estado)
+VALUES (?, ?, ?)
+RETURNING id, viaje_id, pasajero_id, estad
+`
+
+type CrearSolicitudViajeParams struct {
+	ViajeID    int64
+	PasajeroID int64
+	Estado     string
+}
+
+func (q *Queries) CrearSolicitudViaje(ctx context.Context, arg CrearSolicitudViajeParams) (SolicitudViaje, error) {
+	row := q.db.QueryRowContext(ctx, crearSolicitudViaje, arg.ViajeID, arg.PasajeroID, arg.Estado)
+	var i SolicitudViaje
 	err := row.Scan(
 		&i.ID,
-		&i.Nombre,
-		&i.Correo,
-		&i.Password,
+		&i.ViajeID,
+		&i.PasajeroID,
+		&i.Estado,
 	)
 	return i, err
 }
 
-const listarHorariosPorRutaID = `-- name: ListarHorariosPorRutaID :many
-SELECT id, ruta_id, dia, hora
-FROM horarios_ruta
-WHERE ruta_id = ?
+const crearVehiculo = `-- name: CrearVehiculo :one
+?;
+
+INSERT INTO vehiculos (conductor_id, placa, marca, modelo, capacidad)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, conductor_id, placa, marca, modelo, capacid
 `
 
-func (q *Queries) ListarHorariosPorRutaID(ctx context.Context, rutaID int64) ([]HorariosRutum, error) {
-	rows, err := q.db.QueryContext(ctx, listarHorariosPorRutaID, rutaID)
+type CrearVehiculoParams struct {
+	ConductorID int64
+	Placa       string
+	Marca       string
+	Modelo      string
+	Capacidad   int64
+}
+
+func (q *Queries) CrearVehiculo(ctx context.Context, arg CrearVehiculoParams) (Vehiculo, error) {
+	row := q.db.QueryRowContext(ctx, crearVehiculo,
+		arg.ConductorID,
+		arg.Placa,
+		arg.Marca,
+		arg.Modelo,
+		arg.Capacidad,
+	)
+	var i Vehiculo
+	err := row.Scan(
+		&i.ID,
+		&i.ConductorID,
+		&i.Placa,
+		&i.Marca,
+		&i.Modelo,
+		&i.Capacidad,
+	)
+	return i, err
+}
+
+const crearViajeInmediato = `-- name: CrearViajeInmediato :one
+;
+
+INSERT INTO viaje_inmediatos (conductor_id, origen, destino, hora_salida, cupos, estado)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, conductor_id, origen, destino, hora_salida, cupos, estad
+`
+
+type CrearViajeInmediatoParams struct {
+	ConductorID int64
+	Origen      string
+	Destino     string
+	HoraSalida  string
+	Cupos       int64
+	Estado      string
+}
+
+func (q *Queries) CrearViajeInmediato(ctx context.Context, arg CrearViajeInmediatoParams) (ViajeInmediato, error) {
+	row := q.db.QueryRowContext(ctx, crearViajeInmediato,
+		arg.ConductorID,
+		arg.Origen,
+		arg.Destino,
+		arg.HoraSalida,
+		arg.Cupos,
+		arg.Estado,
+	)
+	var i ViajeInmediato
+	err := row.Scan(
+		&i.ID,
+		&i.ConductorID,
+		&i.Origen,
+		&i.Destino,
+		&i.HoraSalida,
+		&i.Cupos,
+		&i.Estado,
+	)
+	return i, err
+}
+
+const listarParticipantesViajes = `-- name: ListarParticipantesViajes :many
+;
+
+
+SELECT id, viaje_id, usuario_id FROM participante_viaje
+`
+
+// PARTICIPANTES VIAJES
+func (q *Queries) ListarParticipantesViajes(ctx context.Context) ([]ParticipanteViaje, error) {
+	rows, err := q.db.QueryContext(ctx, listarParticipantesViajes)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []HorariosRutum
+	var items []ParticipanteViaje
 	for rows.Next() {
-		var i HorariosRutum
+		var i ParticipanteViaje
+		if err := rows.Scan(&i.ID, &i.ViajeID, &i.UsuarioID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarSolicitudesViajes = `-- name: ListarSolicitudesViajes :many
+;
+
+
+SELECT id, viaje_id, pasajero_id, estado FROM solicitud_viaje
+`
+
+// SOLICITUDES VIAJES
+func (q *Queries) ListarSolicitudesViajes(ctx context.Context) ([]SolicitudViaje, error) {
+	rows, err := q.db.QueryContext(ctx, listarSolicitudesViajes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SolicitudViaje
+	for rows.Next() {
+		var i SolicitudViaje
 		if err := rows.Scan(
 			&i.ID,
-			&i.RutaID,
-			&i.Dia,
-			&i.Hora,
+			&i.ViajeID,
+			&i.PasajeroID,
+			&i.Estado,
 		); err != nil {
 			return nil, err
 		}
@@ -284,27 +465,36 @@ func (q *Queries) ListarHorariosPorRutaID(ctx context.Context, rutaID int64) ([]
 	return items, nil
 }
 
-const listarHorariosRuta = `-- name: ListarHorariosRuta :many
+const listarVehiculos = `-- name: ListarVehiculos :many
+;
 
-SELECT id, ruta_id, dia, hora
-FROM horarios_ruta
+
+
+
+
+SELECT id, conductor_id, placa, marca, modelo, capacidad FROM vehicul
 `
 
-// HORARIOS DE RUTA
-func (q *Queries) ListarHorariosRuta(ctx context.Context) ([]HorariosRutum, error) {
-	rows, err := q.db.QueryContext(ctx, listarHorariosRuta)
+// ==========================================
+// MÓDULO 4: USUARIOS Y VEHICULOS
+// ==========================================
+// VEHICULOS
+func (q *Queries) ListarVehiculos(ctx context.Context) ([]Vehiculo, error) {
+	rows, err := q.db.QueryContext(ctx, listarVehiculos)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []HorariosRutum
+	var items []Vehiculo
 	for rows.Next() {
-		var i HorariosRutum
+		var i Vehiculo
 		if err := rows.Scan(
 			&i.ID,
-			&i.RutaID,
-			&i.Dia,
-			&i.Hora,
+			&i.ConductorID,
+			&i.Placa,
+			&i.Marca,
+			&i.Modelo,
+			&i.Capacidad,
 		); err != nil {
 			return nil, err
 		}
@@ -319,99 +509,33 @@ func (q *Queries) ListarHorariosRuta(ctx context.Context) ([]HorariosRutum, erro
 	return items, nil
 }
 
-const listarMantenimientosPorVehiculoID = `-- name: ListarMantenimientosPorVehiculoID :many
-SELECT id, vehiculo_id, fecha_inicio, fecha_fin, motivo
-FROM mantenimientos_vehiculo
-WHERE vehiculo_id = ?
+const listarViajesInmediatos = `-- name: ListarViajesInmediatos :many
+
+
+SELECT id, conductor_id, origen, destino, hora_salida, cupos, estado FROM viaje_inmediato
 `
 
-func (q *Queries) ListarMantenimientosPorVehiculoID(ctx context.Context, vehiculoID int64) ([]MantenimientosVehiculo, error) {
-	rows, err := q.db.QueryContext(ctx, listarMantenimientosPorVehiculoID, vehiculoID)
+// ==========================================
+// MÓDULO 1: VIAJES INMEDIATOS
+// ==========================================
+// VIAJES INMEDIATOS
+func (q *Queries) ListarViajesInmediatos(ctx context.Context) ([]ViajeInmediato, error) {
+	rows, err := q.db.QueryContext(ctx, listarViajesInmediatos)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []MantenimientosVehiculo
+	var items []ViajeInmediato
 	for rows.Next() {
-		var i MantenimientosVehiculo
-		if err := rows.Scan(
-			&i.ID,
-			&i.VehiculoID,
-			&i.FechaInicio,
-			&i.FechaFin,
-			&i.Motivo,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listarMantenimientosVehiculo = `-- name: ListarMantenimientosVehiculo :many
-
-SELECT id, vehiculo_id, fecha_inicio, fecha_fin, motivo
-FROM mantenimientos_vehiculo
-`
-
-// MANTENIMIENTOS VEHICULO
-func (q *Queries) ListarMantenimientosVehiculo(ctx context.Context) ([]MantenimientosVehiculo, error) {
-	rows, err := q.db.QueryContext(ctx, listarMantenimientosVehiculo)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MantenimientosVehiculo
-	for rows.Next() {
-		var i MantenimientosVehiculo
-		if err := rows.Scan(
-			&i.ID,
-			&i.VehiculoID,
-			&i.FechaInicio,
-			&i.FechaFin,
-			&i.Motivo,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listarRutasProgramadas = `-- name: ListarRutasProgramadas :many
-
-SELECT id, conductor_id, origen, destino, costo
-FROM rutas_programadas
-`
-
-// RUTAS PROGRAMADAS
-func (q *Queries) ListarRutasProgramadas(ctx context.Context) ([]RutasProgramada, error) {
-	rows, err := q.db.QueryContext(ctx, listarRutasProgramadas)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []RutasProgramada
-	for rows.Next() {
-		var i RutasProgramada
+		var i ViajeInmediato
 		if err := rows.Scan(
 			&i.ID,
 			&i.ConductorID,
 			&i.Origen,
 			&i.Destino,
-			&i.Costo,
+			&i.HoraSalida,
+			&i.Cupos,
+			&i.Estado,
 		); err != nil {
 			return nil, err
 		}
@@ -424,96 +548,4 @@ func (q *Queries) ListarRutasProgramadas(ctx context.Context) ([]RutasProgramada
 		return nil, err
 	}
 	return items, nil
-}
-
-const obtenerHorarioRuta = `-- name: ObtenerHorarioRuta :one
-SELECT id, ruta_id, dia, hora
-FROM horarios_ruta
-WHERE id = ?
-`
-
-func (q *Queries) ObtenerHorarioRuta(ctx context.Context, id int64) (HorariosRutum, error) {
-	row := q.db.QueryRowContext(ctx, obtenerHorarioRuta, id)
-	var i HorariosRutum
-	err := row.Scan(
-		&i.ID,
-		&i.RutaID,
-		&i.Dia,
-		&i.Hora,
-	)
-	return i, err
-}
-
-const obtenerMantenimientoVehiculo = `-- name: ObtenerMantenimientoVehiculo :one
-SELECT id, vehiculo_id, fecha_inicio, fecha_fin, motivo
-FROM mantenimientos_vehiculo
-WHERE id = ?
-`
-
-func (q *Queries) ObtenerMantenimientoVehiculo(ctx context.Context, id int64) (MantenimientosVehiculo, error) {
-	row := q.db.QueryRowContext(ctx, obtenerMantenimientoVehiculo, id)
-	var i MantenimientosVehiculo
-	err := row.Scan(
-		&i.ID,
-		&i.VehiculoID,
-		&i.FechaInicio,
-		&i.FechaFin,
-		&i.Motivo,
-	)
-	return i, err
-}
-
-const obtenerRutaProgramada = `-- name: ObtenerRutaProgramada :one
-SELECT id, conductor_id, origen, destino, costo
-FROM rutas_programadas
-WHERE id = ?
-`
-
-func (q *Queries) ObtenerRutaProgramada(ctx context.Context, id int64) (RutasProgramada, error) {
-	row := q.db.QueryRowContext(ctx, obtenerRutaProgramada, id)
-	var i RutasProgramada
-	err := row.Scan(
-		&i.ID,
-		&i.ConductorID,
-		&i.Origen,
-		&i.Destino,
-		&i.Costo,
-	)
-	return i, err
-}
-
-const obtenerUsuarioPorCorreo = `-- name: ObtenerUsuarioPorCorreo :one
-SELECT id, nombre, correo, password
-FROM usuarios
-WHERE correo = ?
-`
-
-func (q *Queries) ObtenerUsuarioPorCorreo(ctx context.Context, correo string) (Usuario, error) {
-	row := q.db.QueryRowContext(ctx, obtenerUsuarioPorCorreo, correo)
-	var i Usuario
-	err := row.Scan(
-		&i.ID,
-		&i.Nombre,
-		&i.Correo,
-		&i.Password,
-	)
-	return i, err
-}
-
-const obtenerUsuarioPorID = `-- name: ObtenerUsuarioPorID :one
-SELECT id, nombre, correo, password
-FROM usuarios
-WHERE id = ?
-`
-
-func (q *Queries) ObtenerUsuarioPorID(ctx context.Context, id int64) (Usuario, error) {
-	row := q.db.QueryRowContext(ctx, obtenerUsuarioPorID, id)
-	var i Usuario
-	err := row.Scan(
-		&i.ID,
-		&i.Nombre,
-		&i.Correo,
-		&i.Password,
-	)
-	return i, err
 }
