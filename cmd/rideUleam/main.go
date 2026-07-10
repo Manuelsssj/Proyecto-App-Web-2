@@ -22,6 +22,9 @@ import (
 
 	handlersRP "RideUleam/internal/handlers/rutaProgramada"
 
+	handlersSus "RideUleam/internal/handlers/suscripciones"
+	serviceSus "RideUleam/internal/service/suscripciones"
+
 	handlersUV "RideUleam/internal/handlers/usuarioVehiculo"
 	serviceUV "RideUleam/internal/service/usuarioVehiculo"
 
@@ -73,6 +76,14 @@ func run(cfg config.Config) error {
 	// La autenticación pública sigue siendo la del módulo base; ruta programada
 	// reutiliza el JWT común y solo necesita aquí su almacén.
 	servidorRP := handlersRP.NewServer(recursos.AlmacenRP, nil)
+
+	suscripcionSvc := serviceSus.NewSuscripcionService(recursos.AlmacenSus)
+	planSvc := serviceSus.NewPlanService(recursos.AlmacenSus)
+	historialSvc := serviceSus.NewHistorialService(recursos.AlmacenSus)
+
+	suscripcionH := handlersSus.NewSuscripcionHandler(suscripcionSvc)
+	planH := handlersSus.NewPlanHandler(planSvc)
+	historialH := handlersSus.NewHistorialHandler(historialSvc)
 
 	// 4. Router + middleware global.
 	r := chi.NewRouter()
@@ -150,6 +161,30 @@ func run(cfg config.Config) error {
 			r.With(middleware.RequiereRol("admin")).
 				Delete("/mantenimientos/{id}", servidorRP.BorrarMantenimientoVehiculo)
 			r.Get("/vehiculos/{vehiculoID}/mantenimientos", servidorRP.ListarMantenimientosDeVehiculo)
+
+			// Suscripciones a rutas
+			r.Get("/suscripciones", suscripcionH.Listar)
+			r.Post("/suscripciones", suscripcionH.Crear)
+			r.Get("/suscripciones/{id}", suscripcionH.Obtener)
+			r.Put("/suscripciones/{id}", suscripcionH.Actualizar)
+			r.Delete("/suscripciones/{id}", suscripcionH.Eliminar)
+
+			// Planes de pago
+			r.Get("/planes", planH.Listar)
+			r.With(middleware.RequiereRol("admin")).
+				Post("/planes", planH.Crear)
+			r.Get("/planes/{id}", planH.Obtener)
+			r.With(middleware.RequiereRol("admin")).
+				Put("/planes/{id}", planH.Actualizar)
+			r.With(middleware.RequiereRol("admin")).
+				Delete("/planes/{id}", planH.Eliminar)
+
+			// Historial de suscripciones
+			r.Get("/historial-suscripciones", historialH.Listar)
+			r.Post("/historial-suscripciones", historialH.Crear)
+			r.Get("/historial-suscripciones/{id}", historialH.Obtener)
+			r.Put("/historial-suscripciones/{id}", historialH.Actualizar)
+			r.Delete("/historial-suscripciones/{id}", historialH.Eliminar)
 		})
 	})
 

@@ -14,11 +14,13 @@ import (
 
 	// MODELOS
 	modelsRP "RideUleam/internal/models/rutaProgramada"
+	modelsSus "RideUleam/internal/models/suscripciones"
 	modelsUV "RideUleam/internal/models/usuarioVehiculo"
 	modelsVI "RideUleam/internal/models/viajeInmediato"
 
 	// STORAGE DE CADA MÓDULO
 	storageRP "RideUleam/internal/storage/rutaProgramada"
+	storageSus "RideUleam/internal/storage/suscripciones"
 	storageUV "RideUleam/internal/storage/usuarioVehiculo"
 	storageVI "RideUleam/internal/storage/viajeInmediato"
 )
@@ -33,6 +35,9 @@ type Recursos struct {
 
 	// RutaProgramada
 	AlmacenRP storageRP.Almacen
+
+	// Suscripciones
+	AlmacenSus storageSus.Almacen
 
 	BackendUsado string
 
@@ -56,6 +61,9 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 		&modelsRP.RutaProgramada{},
 		&modelsRP.HorarioRuta{},
 		&modelsRP.MantenimientoVehiculo{},
+		&modelsSus.SuscripcionRuta{},
+		&modelsSus.PlanPago{},
+		&modelsSus.HistorialSuscripcion{},
 	); err != nil {
 		return nil, fmt.Errorf("AutoMigrate: %w", err)
 	}
@@ -74,6 +82,11 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 
 	almacenRPGorm := storageRP.NuevoAlmacenSQLite(gdb)
 	almacenRPGorm.SembrarSiVacio()
+
+	almacenSusGorm := storageSus.NuevoAlmacenGORM(gdb)
+	if err := storageSus.SembrarDatosIniciales(gdb); err != nil {
+		return nil, fmt.Errorf("sembrar suscripciones: %w", err)
+	}
 
 	var almacenUV storageUV.Almacen
 	var almacenVI storageVI.Almacen
@@ -122,6 +135,7 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 		AlmacenUV:    almacenUV,
 		AlmacenVI:    almacenVI,
 		AlmacenRP:    almacenRPGorm,
+		AlmacenSus:   almacenSusGorm,
 		Usuarios:     usuarios,
 		BackendUsado: backendUsado,
 		Cerrar:       cerrar,
