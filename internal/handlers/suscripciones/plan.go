@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"suscripciones-api/internal/models/suscripciones"
-	"suscripciones-api/internal/service/suscripciones"
+	"RideUleam/internal/models/suscripciones"
+	"RideUleam/internal/service/suscripciones"
 )
 
 // PlanHandler maneja las rutas HTTP de los planes de pago.

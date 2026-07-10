@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"suscripciones-api/internal/service/suscripciones"
+	"RideUleam/internal/service/suscripciones"
 )
 
 // responderJSON escribe v como JSON con el código de estado indicado.

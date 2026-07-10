@@ -8,8 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	models "suscripciones-api/internal/models/suscripciones"
-	storage "suscripciones-api/internal/storage/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
+	storage "RideUleam/internal/storage/suscripciones"
 )
 
 func obtenerSecretoJWT() []byte {

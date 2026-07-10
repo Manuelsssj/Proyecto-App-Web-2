@@ -3,8 +3,8 @@ package service
 import (
 	"time"
 
-	models "suscripciones-api/internal/models/suscripciones"
-	storage "suscripciones-api/internal/storage/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
+	storage "RideUleam/internal/storage/suscripciones"
 )
 
 // HistorialService contiene la lógica de negocio del historial de suscripciones.

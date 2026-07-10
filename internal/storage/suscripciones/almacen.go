@@ -1,6 +1,6 @@
 package storage
 
-import models "suscripciones-api/internal/models/suscripciones"
+import models "RideUleam/internal/models/suscripciones"
 
 // Almacen define las operaciones de persistencia que necesita la aplicación.
 type Almacen interface {

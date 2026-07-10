@@ -3,7 +3,7 @@ package storage
 import (
 	"sync"
 
-	"suscripciones-api/internal/models/suscripciones"
+	"RideUleam/internal/models/suscripciones"
 )
 
 // AlmacenMemoria es una implementación de Almacen que guarda los datos en memoria.

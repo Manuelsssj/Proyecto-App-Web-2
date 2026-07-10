@@ -1,8 +1,8 @@
 package service
 
 import (
-	"suscripciones-api/internal/models/suscripciones"
-	"suscripciones-api/internal/storage/suscripciones"
+	"RideUleam/internal/models/suscripciones"
+	"RideUleam/internal/storage/suscripciones"
 )
 
 // PlanService contiene la lógica de negocio de los planes de pago.

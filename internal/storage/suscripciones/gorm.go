@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	models "suscripciones-api/internal/models/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
 )
 
 // AlmacenGORM es una implementación de Almacen usando GORM.

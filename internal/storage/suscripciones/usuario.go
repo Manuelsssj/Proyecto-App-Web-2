@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"suscripciones-api/internal/models/suscripciones"
+	"RideUleam/internal/models/suscripciones"
 )
 
 type UsuarioGORM struct {
