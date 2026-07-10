@@ -1,135 +1,283 @@
-# suscripciones-api
+# 🚍 RideUleam API
 
-API REST en Go para gestionar suscripciones a rutas, planes de pago e historial de suscripciones.
-Arquitectura por capas (models / storage / service / handlers / middleware) con dos backends de
-almacenamiento intercambiables: **memoria** y **SQLite**.
+API REST desarrollada en **Go** para la gestión de suscripciones de rutas, planes de pago e historial de suscripciones del sistema **RideUleam**.
 
-## Estructura del proyecto
+El proyecto fue desarrollado siguiendo una **arquitectura por capas**, utilizando **GORM**, **PostgreSQL**, **Docker**, autenticación mediante **JWT** y un flujo de integración continua con **GitHub Actions**.
+
+---
+
+# 👥 Integrantes
+
+- Manuel Intriago 
+- Andrés Romero
+- Joseph Paredes
+
+---
+
+# 🛠 Tecnologías utilizadas
+
+- Go 1.25
+- PostgreSQL 16
+- GORM
+- Chi Router
+- JWT (golang-jwt)
+- Docker
+- Docker Compose
+- GitHub Actions
+
+---
+
+# Características
+
+- API REST desarrollada en Go.
+- Arquitectura por capas.
+- Persistencia con PostgreSQL mediante GORM.
+- Autenticación con JWT.
+- Middleware CORS.
+- Docker y Docker Compose.
+- GitHub Actions para Integración Continua.
+- Seeder automático.
+- CRUD completo para:
+  - Suscripciones
+  - Planes
+  - Historial
+
+---
+
+# 🏗 Arquitectura del proyecto
+
+El proyecto sigue una arquitectura por capas para separar responsabilidades.
 
 ```
-suscripciones-api/
+Cliente
+    │
+HTTP Request
+    │
+Handlers
+    │
+Services
+    │
+Repositories (Storage)
+    │
+PostgreSQL
+```
+
+Cada capa tiene una responsabilidad específica:
+
+- **Handlers:** reciben las peticiones HTTP y generan las respuestas.
+- **Services:** contienen la lógica de negocio.
+- **Storage:** administra el acceso a la base de datos mediante GORM.
+- **Models:** representan las entidades del sistema.
+- **Middleware:** autenticación JWT y configuración CORS.
+
+---
+
+# 📁 Estructura del proyecto
+
+```
+Proyecto-App-Web-2
+│
 ├── cmd/
-│   └── suscripciones-api/
-│       └── main.go              # Punto de entrada: configura storage, servicios, handlers y servidor
+│   └── rideUleam/
+│       └── main.go
+│
 ├── internal/
-│   ├── models/                  # Structs de dominio
-│   │   ├── suscripcionruta.go
-│   │   ├── planpago.go
-│   │   └── historialsuscripcion.go
-│   ├── storage/                 # Persistencia (interfaz + implementaciones)
-│   │   ├── almacen.go           # Interfaz Almacen
-│   │   ├── memoria.go           # Implementación en memoria
-│   │   └── sqlite.go            # Implementación SQLite
-│   ├── service/                 # Lógica de negocio y validaciones
-│   │   ├── errores.go
-│   │   ├── suscripcion.go
-│   │   ├── plan.go
-│   │   └── historial.go
-│   ├── handlers/                # Capa HTTP (controllers)
-│   │   ├── respond.go           # Helpers de respuesta JSON
-│   │   ├── suscripcion.go
-│   │   ├── plan.go
-│   │   └── historial.go
-│   └── middleware/
-│       └── cors.go
+│   ├── handlers/
+│   ├── middleware/
+│   ├── models/
+│   ├── service/
+│   └── storage/
+│
 ├── db/
-│   ├── schema.sql               # Definición de tablas
-│   └── queries.sql              # Consultas SQL de referencia
+│   ├── schema.sql
+│   └── queries.sql
+│
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
 ├── go.mod
+├── go.sum
 └── README.md
 ```
 
-## Requisitos
+---
 
-- Go 1.22 o superior.
+# ⚙ Variables de entorno
 
-## Instalación y ejecución
+El proyecto utiliza las siguientes variables de entorno:
+
+| Variable | Descripción |
+|----------|-------------|
+| DATABASE_URL | Cadena de conexión a PostgreSQL |
+| PORT | Puerto donde se ejecuta la API |
+| JWT_SECRETO | Clave utilizada para firmar los tokens JWT |
+
+Ejemplo:
+
+```env
+PORT=8080
+DATABASE_URL=host=db user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable
+JWT_SECRETO=rideuleam-secreto-dev
+```
+
+---
+
+# 🚀 Ejecución local
+
+Instalar dependencias
 
 ```bash
-# 1. Descargar dependencias (genera go.sum automáticamente)
 go mod tidy
-
-# 2a. Ejecutar con almacenamiento en MEMORIA (por defecto)
-go run ./cmd/suscripciones-api
-
-# 2b. Ejecutar con almacenamiento en SQLITE
-go run ./cmd/suscripciones-api -storage=sqlite -db=suscripciones.db
-
-# Opcional: cambiar el puerto
-go run ./cmd/suscripciones-api -puerto=:9090
 ```
 
-El servidor queda escuchando en `http://localhost:8080`.
-
-## Endpoints
-
-Cada entidad expone un CRUD completo.
-
-### Suscripciones (`/suscripciones`)
-
-| Método | Ruta                 | Descripción              |
-|--------|----------------------|--------------------------|
-| GET    | /suscripciones       | Listar todas             |
-| POST   | /suscripciones       | Crear una nueva          |
-| GET    | /suscripciones/{id}  | Obtener por ID           |
-| PUT    | /suscripciones/{id}  | Actualizar por ID        |
-| DELETE | /suscripciones/{id}  | Eliminar por ID          |
-
-### Planes de pago (`/planes`)
-
-| Método | Ruta           | Descripción       |
-|--------|----------------|-------------------|
-| GET    | /planes        | Listar todos      |
-| POST   | /planes        | Crear uno nuevo   |
-| GET    | /planes/{id}   | Obtener por ID    |
-| PUT    | /planes/{id}   | Actualizar por ID |
-| DELETE | /planes/{id}   | Eliminar por ID   |
-
-### Historial (`/historial`)
-
-| Método | Ruta              | Descripción       |
-|--------|-------------------|-------------------|
-| GET    | /historial        | Listar todo       |
-| POST   | /historial        | Crear uno nuevo   |
-| GET    | /historial/{id}   | Obtener por ID    |
-| PUT    | /historial/{id}   | Actualizar por ID |
-| DELETE | /historial/{id}   | Eliminar por ID   |
-
-También hay un endpoint de salud: `GET /health`.
-
-## Ejemplos con curl
+Ejecutar la aplicación
 
 ```bash
-# Crear una suscripción
-curl -X POST http://localhost:8080/suscripciones \
-  -H "Content-Type: application/json" \
-  -d '{"ruta_id": 1, "usuario_id": 5}'
-
-# Listar suscripciones
-curl http://localhost:8080/suscripciones
-
-# Crear un plan de pago
-curl -X POST http://localhost:8080/planes \
-  -H "Content-Type: application/json" \
-  -d '{"ruta_id": 1, "valor_semanal": 12.50}'
-
-# Crear un historial (si no envías fecha_registro, usa la fecha actual)
-curl -X POST http://localhost:8080/historial \
-  -H "Content-Type: application/json" \
-  -d '{"suscripcion_id": 1, "estado": "activa"}'
-
-# Actualizar una suscripción
-curl -X PUT http://localhost:8080/suscripciones/1 \
-  -H "Content-Type: application/json" \
-  -d '{"ruta_id": 2, "usuario_id": 5}'
-
-# Eliminar un plan
-curl -X DELETE http://localhost:8080/planes/1
+go run ./cmd/rideUleam
 ```
 
-## Notas de diseño
+La API quedará disponible en
 
-- **Almacen** es una interfaz, por lo que memoria y SQLite son intercambiables sin tocar los servicios.
-- Los **services** contienen las validaciones de negocio y devuelven errores tipados (`ErrNoEncontrado`,
-  `ErrDatosInvalidos`) que los handlers traducen a códigos HTTP.
-- SQLite usa `modernc.org/sqlite`, un driver en Go puro (no requiere CGO ni compilador de C).
+```
+http://localhost:8080
+```
+
+---
+
+# 🐳 Ejecución con Docker
+
+Construir y levantar los contenedores
+
+```bash
+docker compose up --build
+```
+
+Detener los contenedores
+
+```bash
+docker compose down
+```
+
+La aplicación quedará disponible en
+
+```
+http://localhost:8080
+```
+
+---
+
+# 🗄 Base de datos
+
+El proyecto utiliza **PostgreSQL** como sistema gestor de base de datos.
+
+Al iniciar la aplicación:
+
+- Se establece la conexión mediante GORM.
+- Se ejecutan automáticamente las migraciones (`AutoMigrate`).
+- Se cargan datos iniciales mediante un Seeder.
+
+---
+
+# 🔐 Autenticación
+
+La autenticación se realiza utilizando **JSON Web Tokens (JWT)**.
+
+Endpoints públicos:
+
+```
+POST /api/v1/auth/register
+
+POST /api/v1/auth/login
+```
+
+Los demás endpoints requieren un token JWT válido.
+
+---
+
+# 📌 Endpoints principales
+
+## Autenticación
+
+| Método | Endpoint |
+|---------|----------|
+| POST | /api/v1/auth/register |
+| POST | /api/v1/auth/login |
+
+## Suscripciones
+
+| Método | Endpoint |
+|---------|----------|
+| GET | /api/v1/suscripciones |
+| POST | /api/v1/suscripciones |
+| GET | /api/v1/suscripciones/{id} |
+| PUT | /api/v1/suscripciones/{id} |
+| DELETE | /api/v1/suscripciones/{id} |
+
+## Planes
+
+| Método | Endpoint |
+|---------|----------|
+| GET | /api/v1/planes |
+| POST | /api/v1/planes |
+| GET | /api/v1/planes/{id} |
+| PUT | /api/v1/planes/{id} |
+| DELETE | /api/v1/planes/{id} |
+
+## Historial
+
+| Método | Endpoint |
+|---------|----------|
+| GET | /api/v1/historial |
+| POST | /api/v1/historial |
+| GET | /api/v1/historial/{id} |
+| PUT | /api/v1/historial/{id} |
+| DELETE | /api/v1/historial/{id} |
+
+## Estado del servidor
+
+```
+GET /health
+```
+
+---
+
+# 🌱 Seeder
+
+Durante el arranque de la aplicación se insertan datos iniciales en la base de datos cuando las tablas se encuentran vacías.
+
+Esto facilita las pruebas del sistema.
+
+---
+
+# 🧪 Pruebas
+
+Ejecutar todas las pruebas
+
+```bash
+go test ./...
+```
+
+Ejecutar pruebas con cobertura
+
+```bash
+go test ./... --cover
+```
+
+---
+
+# ⚙ Integración Continua
+
+El proyecto utiliza **GitHub Actions** para ejecutar automáticamente:
+
+- Descarga de dependencias
+- Verificación del código (`go vet`)
+- Ejecución de pruebas (`go test`)
+- Cobertura de pruebas
+
+Cada cambio enviado al repositorio ejecuta automáticamente el pipeline de integración continua.
+
+---
+
+# 📄 Licencia
+
+Proyecto académico desarrollado para la asignatura **Aplicaciones Web II**.

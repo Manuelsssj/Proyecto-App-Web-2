@@ -23,7 +23,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: host=db user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable TimeZone=America/Guayaquil
+      DATABASE_URL: host=db user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable
       PORT: "8080"
       JWT_SECRETO: rideuleam-secreto-dev
     ports:

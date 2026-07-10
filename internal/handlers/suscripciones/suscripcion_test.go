@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"suscripciones-api/internal/middleware"
-	"suscripciones-api/internal/models/suscripciones"
-	"suscripciones-api/internal/service/suscripciones"
+	models "suscripciones-api/internal/models/suscripciones"
+	service "suscripciones-api/internal/service/suscripciones"
 )
 
 type fakeAlmacenHandler struct {

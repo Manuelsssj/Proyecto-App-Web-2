@@ -21,7 +21,7 @@ import (
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "host=localhost user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable TimeZone=America/Guayaquil"
+		dsn = "host=localhost user=postgres password=postgres dbname=rideuleam port=5432 sslmode=disable"
 	}
 
 	gdb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
