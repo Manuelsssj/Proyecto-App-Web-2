@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"suscripciones-api/internal/models/suscripciones"
+	"RideUleam/internal/models/suscripciones"
 )
 
 type mockAlmacenSuscripcion struct {

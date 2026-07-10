@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 
-	models "suscripciones-api/internal/models/suscripciones"
-	service "suscripciones-api/internal/service/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
+	service "RideUleam/internal/service/suscripciones"
 )
 
 type fakeAlmacenHandlerExtra struct{}

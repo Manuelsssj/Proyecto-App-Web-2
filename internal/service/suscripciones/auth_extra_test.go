@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	models "suscripciones-api/internal/models/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
 )
 
 type fakeUserRepoAuth struct {

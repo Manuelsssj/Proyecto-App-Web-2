@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	models "suscripciones-api/internal/models/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
 )
 
 type fakeAlmacenServiceExtra struct {

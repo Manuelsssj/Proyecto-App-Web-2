@@ -1,7 +1,7 @@
 package storage
 
 import (
-	models "suscripciones-api/internal/models/suscripciones"
+	models "RideUleam/internal/models/suscripciones"
 	"testing"
 
 	"github.com/glebarez/sqlite"

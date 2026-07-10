@@ -8,9 +8,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"suscripciones-api/internal/middleware"
-	models "suscripciones-api/internal/models/suscripciones"
-	service "suscripciones-api/internal/service/suscripciones"
+	"RideUleam/internal/middleware"
+	models "RideUleam/internal/models/suscripciones"
+	modelsUV "RideUleam/internal/models/usuarioVehiculo"
+	service "RideUleam/internal/service/suscripciones"
+	serviceUV "RideUleam/internal/service/usuarioVehiculo"
 )
 
 type fakeAlmacenHandler struct {
@@ -98,12 +100,12 @@ func (f *fakeAlmacenHandler) EliminarHistorial(id int) error {
 
 type fakeUserRepoHandler struct{}
 
-func (f *fakeUserRepoHandler) CrearUsuario(u models.Usuario) (models.Usuario, error) {
+func (f *fakeUserRepoHandler) CrearUsuario(u modelsUV.Usuario) (modelsUV.Usuario, error) {
 	return u, nil
 }
 
-func (f *fakeUserRepoHandler) BuscarUsuarioPorEmail(email string) (models.Usuario, bool) {
-	return models.Usuario{}, false
+func (f *fakeUserRepoHandler) BuscarUsuarioPorEmail(email string) (modelsUV.Usuario, bool) {
+	return modelsUV.Usuario{}, false
 }
 
 func TestSuscripcionHandler_CrearSuscripcion(t *testing.T) {
@@ -136,7 +138,7 @@ func TestSuscripcionHandler_RutaProtegidaSinTokenRetorna401(t *testing.T) {
 	h := NewSuscripcionHandler(srv)
 
 	r := chi.NewRouter()
-	authSrv := service.NewAuthService(&fakeUserRepoHandler{})
+	authSrv := serviceUV.NuevoAuthService(&fakeUserRepoHandler{})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(authSrv))
